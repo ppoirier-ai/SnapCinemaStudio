@@ -1,0 +1,2 @@
+# SnapCinemaStudio
+Decentralized Movie Studio
