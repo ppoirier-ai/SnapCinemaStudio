@@ -185,7 +185,7 @@
 
 /* SnapCinema Studio scaffold */
 .studio {
-  max-width: 40rem;
+  max-width: 52rem;
   margin: 2rem auto;
   padding: 0 1.25rem;
   font-family: system-ui, sans-serif;
@@ -223,4 +223,101 @@
   margin-top: 0.75rem;
   font-size: 0.875rem;
   color: #64748b;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.muted {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stats {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.btn-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.preset-label {
+  min-width: 5rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.studio button {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.35rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.studio button:hover:not(:disabled) {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.studio button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.playback {
+  margin-top: 0.75rem;
+}
+
+.log-panel .log {
+  max-height: 14rem;
+  overflow: auto;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

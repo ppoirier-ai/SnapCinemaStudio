@@ -19,6 +19,17 @@ On-chain **proof-of-curation** primitive for SnapCinema Studio. Full mechanics a
 
 3. Regenerate a fresh program id for a serious deployment: new keypair, update `declare_id!`, `[programs.*]` in `Anchor.toml`, and redeploy — do **not** reuse the scaffold keypair on mainnet.
 
-## API (target)
+## API (Phase 1 — implemented)
 
-Per [`docs/project-description.md`](../../docs/project-description.md): `stake_up`, `stake_down`, `unstake`, `deposit_revenue`, curator **claims**, rank updates — **no** `sweep_stale` in Phase 1.
+| Instruction | Role |
+|-------------|------|
+| `initialize_slot` | Authority + creator + platform pubkeys; creates **slot** PDA + **vault** PDA. |
+| `register_version` | Authority adds a **version** under a slot (initial rank; v0 floored to ≥ 1_000_000). |
+| `stake_up` / `stake_down` | Lock SOL in vault; bump **rank**; open position with `entry_rank` snapshot (same user/version is **one** side). |
+| `unstake` | Return principal; remove active rank; add **~1%** min-1-lamport **residual** rank. |
+| `deposit_revenue` | **20%** creator, **10%** platform, **70%** split across **remaining** `Position` accounts for that version (weights: spec delta × bonding × active/residual). |
+| `claim_curator` | Pay `accrued_rewards` from vault to owner. |
+
+**Not in Phase 1:** `sweep_stale` / 90-day dust — see [`docs/project-description.md`](../../docs/project-description.md).
+
+**`deposit_revenue`:** the client must pass **every** position account for that version as **remaining accounts** (the demo app uses `getProgramAccounts` + `dataSize` **99**).
