@@ -137,3 +137,12 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Colosseum Copilot (installed locally via npx skills add)
+.agents/skills/colosseum-copilot/
+
+# Anchor / Solana
+target/
+**/*.rs.bk
+.anchor/
+test-ledger/
