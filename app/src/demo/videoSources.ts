@@ -1,6 +1,6 @@
 /**
- * Optional overrides via .env; otherwise use files in /public (see README).
- * If unset and public files missing, FanStage shows a placeholder (no broken video).
+ * Fan tab playback: prefer hosted media. Env overrides or /public demo files.
+ * Creators contribute YouTube URLs in-app; watch page uses VITE_YOUTUBE_* for the main embed.
  */
 export function demoVideoSrc(version: 0 | 1): string | undefined {
   const raw =

@@ -83,9 +83,9 @@ export function StudioDemoPage() {
 
       {role === 'creator' && (
         <p className="lede">
-          <strong>Creator:</strong> register your concept and trailer placeholders,
-          then track version performance and simulated revenue splits (20% / 10% /
-          70%).
+          <strong>Creator:</strong> paste a <strong>YouTube</strong> link for your
+          trailer or cut, add an optional local concept file (not uploaded here), then
+          track version performance and simulated revenue splits (20% / 10% / 70%).
         </p>
       )}
 

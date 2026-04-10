@@ -746,6 +746,32 @@
   min-width: 10rem;
 }
 
+.creator-youtube-input {
+  width: 100%;
+  margin-top: 0.35rem;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--st-radius-sm);
+  border: 1px solid var(--st-border);
+  background: var(--st-surface-2);
+  color: var(--st-heading);
+}
+
+.field-required {
+  font-weight: 500;
+  color: var(--st-muted);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.field-error {
+  margin: -0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: #f87171;
+}
+
 .file-input {
   display: block;
   width: 100%;
