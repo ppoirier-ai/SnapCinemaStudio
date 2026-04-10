@@ -114,6 +114,7 @@ export function WatchPage() {
   const envVid = envYoutubeVideoId()
   const { movies, watchMovieId, setWatchMovieId, getMovie } = useMovies()
   const {
+    chainSynced,
     playback,
     busy,
     connected,
@@ -121,8 +122,8 @@ export function WatchPage() {
     v1,
     onStakeUp,
     onStakeDown,
+    onSetup,
     setToast,
-    append,
   } = useDemoSlot()
 
   const playingMovie =
@@ -131,8 +132,10 @@ export function WatchPage() {
   const playbackKey =
     playingMovie?.id ?? (envVid ? `env:${envVid}` : 'none')
 
-  const thumbsDisabled = !connected || busy || playback === null
-  const flagDisabled = !connected || busy
+  const slotMissingOnChain =
+    chainSynced && v0 === null && v1 === null
+  const reactionsDisabled =
+    !connected || busy || playback === null || !chainSynced
 
   const onThumbUp = () => {
     if (playback === null) return
@@ -144,11 +147,11 @@ export function WatchPage() {
     void onStakeDown(playback, FAN_REACTION_LAMPORTS)
   }
 
+  /** Flag uses `stake_down` on the playing version (same primitive, strong negative signal). */
   const onFlag = () => {
-    setToast(
-      'Flag recorded for this demo. On-chain reporting can be added in a later version.',
-    )
-    append('Flag: UI-only signal (no chain tx)')
+    if (playback === null) return
+    void onStakeDown(playback, FAN_REACTION_LAMPORTS)
+    setToast('Flag sent: stake_down on this version (devnet).')
   }
 
   const playerTitle =
@@ -177,17 +180,47 @@ export function WatchPage() {
             <strong>{playingMovie.title.trim() || 'Untitled'}</strong>
           </p>
         )}
-        {playback !== null && (
+        {!chainSynced && connected && (
+          <p className="muted watch-curate-hint" role="status">
+            Loading on-chain slot…
+          </p>
+        )}
+        {slotMissingOnChain && (
+          <div
+            className="watch-slot-setup-notice"
+            role="region"
+            aria-labelledby="watch-slot-setup-heading"
+          >
+            <h2 id="watch-slot-setup-heading" className="watch-slot-setup-title">
+              Enable StakeToCurate
+            </h2>
+            <p className="muted watch-slot-setup-copy">
+              Thumbs and flag send <code>stake_up</code> / <code>stake_down</code> on
+              the demo slot (0.01 SOL each on devnet). Initialize the slot once with
+              this wallet, or use <strong>Studio → Admin → Initialize</strong>.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary watch-slot-setup-btn"
+              disabled={busy}
+              onClick={() => void onSetup()}
+            >
+              {busy ? 'Working…' : 'Initialize demo slot + versions'}
+            </button>
+          </div>
+        )}
+        {playback !== null && chainSynced && (
           <p className="muted watch-curate-hint">
-            On-chain sample: curating <strong>version {playback}</strong> (thumbs use
-            0.01 SOL on devnet).
+            StakeToCurate: you are curating <strong>version {playback}</strong> (up /
+            down / flag each stake 0.01 SOL on devnet; flag uses{' '}
+            <code>stake_down</code>).
           </p>
         )}
         <div className="watch-reaction-bar" role="group" aria-label="Curate clip">
           <button
             type="button"
             className="watch-icon-btn watch-icon-btn-up"
-            disabled={thumbsDisabled}
+            disabled={reactionsDisabled}
             onClick={onThumbUp}
             aria-label="Thumbs up"
           >
@@ -196,7 +229,7 @@ export function WatchPage() {
           <button
             type="button"
             className="watch-icon-btn watch-icon-btn-down"
-            disabled={thumbsDisabled}
+            disabled={reactionsDisabled}
             onClick={onThumbDown}
             aria-label="Thumbs down"
           >
@@ -205,9 +238,9 @@ export function WatchPage() {
           <button
             type="button"
             className="watch-icon-btn watch-icon-btn-flag"
-            disabled={flagDisabled}
+            disabled={reactionsDisabled}
             onClick={onFlag}
-            aria-label="Flag"
+            aria-label="Flag (stake down on playing version)"
           >
             <IconFlag className="watch-icon-svg" />
           </button>

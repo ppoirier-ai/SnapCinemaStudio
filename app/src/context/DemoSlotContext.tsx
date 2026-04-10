@@ -33,6 +33,8 @@ type V = ReturnType<typeof decodeVersion>
 type P = ReturnType<typeof decodePosition>
 
 type DemoSlotValue = {
+  /** True after the latest `refreshOnChain` finished (success or failure). */
+  chainSynced: boolean
   authority: ReturnType<typeof useWallet>['publicKey']
   publicKey: ReturnType<typeof useWallet>['publicKey']
   connected: boolean
@@ -77,6 +79,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const [pos0, setPos0] = useState<P | null>(null)
   const [pos1, setPos1] = useState<P | null>(null)
   const [playback, setPlayback] = useState<0 | 1 | null>(null)
+  const [chainSynced, setChainSynced] = useState(false)
   const sampledBothRef = useRef(false)
 
   const append = useCallback((m: string) => {
@@ -101,23 +104,32 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   )
 
   const refreshOnChain = useCallback(async () => {
-    if (!authority || !v0Pk || !v1Pk) return
-    const [a0, a1] = await Promise.all([
-      connection.getAccountInfo(v0Pk),
-      connection.getAccountInfo(v1Pk),
-    ])
-    if (a0?.data) setV0(decodeVersion(Buffer.from(a0.data)))
-    else setV0(null)
-    if (a1?.data) setV1(decodeVersion(Buffer.from(a1.data)))
-    else setV1(null)
-    const [p0, p1] = await Promise.all([
-      connection.getAccountInfo(positionPda(v0Pk, authority)),
-      connection.getAccountInfo(positionPda(v1Pk, authority)),
-    ])
-    if (p0?.data) setPos0(decodePosition(Buffer.from(p0.data)))
-    else setPos0(null)
-    if (p1?.data) setPos1(decodePosition(Buffer.from(p1.data)))
-    else setPos1(null)
+    if (!authority || !v0Pk || !v1Pk) {
+      setChainSynced(true)
+      return
+    }
+    try {
+      const [a0, a1] = await Promise.all([
+        connection.getAccountInfo(v0Pk),
+        connection.getAccountInfo(v1Pk),
+      ])
+      if (a0?.data) setV0(decodeVersion(Buffer.from(a0.data)))
+      else setV0(null)
+      if (a1?.data) setV1(decodeVersion(Buffer.from(a1.data)))
+      else setV1(null)
+      const [p0, p1] = await Promise.all([
+        connection.getAccountInfo(positionPda(v0Pk, authority)),
+        connection.getAccountInfo(positionPda(v1Pk, authority)),
+      ])
+      if (p0?.data) setPos0(decodePosition(Buffer.from(p0.data)))
+      else setPos0(null)
+      if (p1?.data) setPos1(decodePosition(Buffer.from(p1.data)))
+      else setPos1(null)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setChainSynced(true)
+    }
   }, [authority, connection, v0Pk, v1Pk])
 
   useEffect(() => {
@@ -151,7 +163,11 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   }, [toast])
 
   useEffect(() => {
-    if (!connected || !authority) return
+    if (!connected || !authority) {
+      setChainSynced(false)
+      return
+    }
+    setChainSynced(false)
     void refreshOnChain()
   }, [connected, authority, refreshOnChain])
 
@@ -296,6 +312,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   }
 
   const value: DemoSlotValue = {
+    chainSynced,
     authority,
     publicKey,
     connected,
