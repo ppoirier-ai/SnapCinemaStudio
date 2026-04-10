@@ -8,7 +8,7 @@ type Props = {
 const LABELS: Record<DemoRole, string> = {
   admin: 'Admin',
   creator: 'Creator',
-  fan: 'Fan',
+  fan: 'Scenes',
 }
 
 export function RoleTabs({ role, onChange }: Props) {

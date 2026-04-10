@@ -81,7 +81,7 @@ export function WalletMenu({ variant }: Props) {
             role="menuitem"
             onClick={() => setOpen(false)}
           >
-            Contribute
+            Scene board
           </NavLink>
           <NavLink
             to="/account"

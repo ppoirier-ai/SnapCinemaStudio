@@ -2,13 +2,16 @@ import { Outlet, Navigate } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { AppHeader } from '../components/AppHeader'
 import { DemoSlotProvider, useDemoSlot } from '../context/DemoSlotContext'
+import { SceneBoardProvider } from '../context/SceneBoardContext'
 
 export function AuthedShell() {
   const { connected } = useWallet()
   if (!connected) return <Navigate to="/" replace />
   return (
     <DemoSlotProvider>
-      <AuthedChrome />
+      <SceneBoardProvider>
+        <AuthedChrome />
+      </SceneBoardProvider>
     </DemoSlotProvider>
   )
 }

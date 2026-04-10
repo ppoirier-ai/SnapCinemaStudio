@@ -1,19 +1,19 @@
 import { useNavigate } from 'react-router-dom'
-import { useDemoSlot } from '../context/DemoSlotContext'
-import { FanContributePanel } from '../demo/FanContributePanel'
+import { FanSceneBoard } from '../demo/FanSceneBoard'
 
 export function ContributePage() {
   const navigate = useNavigate()
-  const { append } = useDemoSlot()
 
   return (
-    <main className="studio">
-      <FanContributePanel
-        onBack={() => navigate('/watch')}
-        onSubmitted={(summary) => {
-          append(summary)
-        }}
-      />
+    <main className="studio contribute-scenes-page">
+      <button
+        type="button"
+        className="btn btn-ghost contribute-back"
+        onClick={() => navigate('/watch')}
+      >
+        ← Back to Watch
+      </button>
+      <FanSceneBoard subheading="This is the same scene board as Studio → Scenes. Everything saves in your browser only." />
     </main>
   )
 }
