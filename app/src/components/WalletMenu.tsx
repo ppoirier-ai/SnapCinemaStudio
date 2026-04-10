@@ -42,14 +42,19 @@ export function WalletMenu({ variant }: Props) {
     <div className="wallet-menu" ref={wrapRef}>
       <button
         type="button"
-        className="btn btn-secondary wallet-menu-trigger"
+        className="wallet-menu-trigger"
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((o) => !o)}
       >
         <span className="wallet-menu-trigger-label">{short}</span>
         <span className="wallet-menu-chevron" aria-hidden>
-          ▾
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
+            <path
+              fill="currentColor"
+              d="M12 15.4 6 9.4l1.4-1.4 4.6 4.6 4.6-4.6L18 9.4l-6 6z"
+            />
+          </svg>
         </span>
       </button>
       {open && (
