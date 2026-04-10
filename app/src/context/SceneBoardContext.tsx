@@ -13,7 +13,12 @@ import { extractYoutubeVideoId } from '../lib/youtubeUrl'
 const STORAGE_KEY = 'snapcinema-movies-v2'
 const LEGACY_KEY = 'snapcinema-scene-board-v1'
 
-export type SceneCell = { id: string; youtubeUrl: string | null }
+export type SceneCell = {
+  id: string
+  youtubeUrl: string | null
+  /** Stake weight for weighted alternative selection (stringified bigint in JSON). */
+  rank?: string
+}
 export type SceneColumn = { id: string; cells: SceneCell[] }
 
 export type Movie = {
@@ -57,11 +62,16 @@ function normalizeColumns(raw: unknown): SceneColumn[] {
       id: typeof c.id === 'string' ? c.id : newId(),
       cells: Array.isArray(c.cells)
         ? c.cells.map((cell: unknown) => {
-            const x = cell as { id?: string; youtubeUrl?: string | null }
+            const x = cell as {
+              id?: string
+              youtubeUrl?: string | null
+              rank?: string
+            }
             return {
               id: typeof x.id === 'string' ? x.id : newId(),
               youtubeUrl:
                 typeof x.youtubeUrl === 'string' ? x.youtubeUrl : null,
+              rank: typeof x.rank === 'string' ? x.rank : undefined,
             }
           })
         : [{ id: newId(), youtubeUrl: null }],

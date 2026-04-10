@@ -1192,6 +1192,24 @@
   border: 0;
 }
 
+.watch-youtube-api-root {
+  position: absolute;
+  inset: 0;
+}
+
+.watch-youtube-api-target {
+  width: 100%;
+  height: 100%;
+}
+
+.watch-youtube-api-root iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .watch-short-placeholder {
   position: absolute;
   inset: 0;

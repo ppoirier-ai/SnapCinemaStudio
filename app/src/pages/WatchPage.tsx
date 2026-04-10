@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { YoutubeWatchPlayer } from '../components/YoutubeWatchPlayer'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import {
   getFirstYoutubeVideoIdFromMovie,
@@ -6,7 +8,8 @@ import {
 } from '../context/SceneBoardContext'
 import { FAN_REACTION_LAMPORTS } from '../demo/constants'
 import { IconFlag, IconThumbDown, IconThumbUp } from '../components/ReactionIcons'
-import { youtubeEmbedSrc } from '../lib/youtubeEmbed'
+import { envYoutubeVideoId, youtubeEmbedSrc } from '../lib/youtubeEmbed'
+import { buildWatchPlaylist } from '../lib/watchPlaylist'
 import { youtubeThumbnailUrl } from '../lib/youtubeUrl'
 
 function posterForMovie(m: Movie): string | null {
@@ -14,13 +17,108 @@ function posterForMovie(m: Movie): string | null {
   return id ? youtubeThumbnailUrl(id) : null
 }
 
+type VersionRow = { rank: bigint } | null
+
+function WatchShortPlayback({
+  movie,
+  v0,
+  v1,
+  playback,
+  envVid,
+  envEmbed,
+  playerTitle,
+}: {
+  movie: Movie | null
+  v0: VersionRow
+  v1: VersionRow
+  playback: 0 | 1 | null
+  envVid: string | null
+  envEmbed: string | null
+  playerTitle: string
+}) {
+  const [playlistKey, setPlaylistKey] = useState(0)
+  const [clipIndex, setClipIndex] = useState(0)
+
+  const clips = useMemo(() => {
+    void playlistKey
+    if (movie) {
+      const p = buildWatchPlaylist(movie, { v0, v1, playback })
+      if (p.length > 0) return p
+    }
+    if (envVid) return [{ videoId: envVid, columnIndex: -1 }]
+    return []
+  }, [movie, v0, v1, playback, playlistKey, envVid])
+
+  const clipsRef = useRef(clips)
+  useEffect(() => {
+    clipsRef.current = clips
+  }, [clips])
+
+  const onClipEnded = useCallback(() => {
+    setClipIndex((prev) => {
+      const list = clipsRef.current
+      const n = list.length
+      if (n === 0) return 0
+      const cur = Math.min(prev, n - 1)
+      if (cur + 1 < n) return cur + 1
+      queueMicrotask(() => setPlaylistKey((k) => k + 1))
+      return 0
+    })
+  }, [])
+
+  const n = clips.length
+  const safeIndex = n === 0 ? 0 : Math.min(clipIndex, n - 1)
+  const currentVideoId = clips[safeIndex]?.videoId ?? null
+
+  const fromMovieVid = movie
+    ? getFirstYoutubeVideoIdFromMovie(movie)
+    : null
+  const embedSrc =
+    !currentVideoId && fromMovieVid
+      ? `https://www.youtube.com/embed/${fromMovieVid}?rel=0`
+      : !currentVideoId
+        ? envEmbed
+        : null
+
+  return (
+    <>
+      {currentVideoId ? (
+        <YoutubeWatchPlayer
+          key={`${currentVideoId}-${safeIndex}`}
+          videoId={currentVideoId}
+          onEnded={onClipEnded}
+          title={playerTitle}
+        />
+      ) : embedSrc ? (
+        <iframe
+          title={playerTitle}
+          src={embedSrc}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      ) : (
+        <div className="watch-short-placeholder">
+          <p>
+            Add YouTube scenes via the wallet menu (<strong>Scene</strong>), pick a
+            movie below, or set <code>VITE_YOUTUBE_SHORT_ID</code> /{' '}
+            <code>VITE_YOUTUBE_EMBED_URL</code> in <code>.env</code>.
+          </p>
+        </div>
+      )}
+    </>
+  )
+}
+
 export function WatchPage() {
   const envEmbed = youtubeEmbedSrc()
+  const envVid = envYoutubeVideoId()
   const { movies, watchMovieId, setWatchMovieId, getMovie } = useMovies()
   const {
     playback,
     busy,
     connected,
+    v0,
+    v1,
     onStakeUp,
     onStakeDown,
     setToast,
@@ -30,12 +128,8 @@ export function WatchPage() {
   const playingMovie =
     (watchMovieId ? getMovie(watchMovieId) : null) ?? movies[0] ?? null
 
-  const fromMovieVid = playingMovie
-    ? getFirstYoutubeVideoIdFromMovie(playingMovie)
-    : null
-  const embedSrc = fromMovieVid
-    ? `https://www.youtube.com/embed/${fromMovieVid}?rel=0`
-    : envEmbed
+  const playbackKey =
+    playingMovie?.id ?? (envVid ? `env:${envVid}` : 'none')
 
   const thumbsDisabled = !connected || busy || playback === null
   const flagDisabled = !connected || busy
@@ -57,30 +151,25 @@ export function WatchPage() {
     append('Flag: UI-only signal (no chain tx)')
   }
 
+  const playerTitle =
+    playingMovie?.title.trim()
+      ? `${playingMovie.title} — SnapCinema`
+      : 'SnapCinema demo short'
+
   return (
     <main className="studio watch-page">
       <div className="watch-short-shell">
         <div className="watch-short-frame">
-          {embedSrc ? (
-            <iframe
-              title={
-                playingMovie?.title.trim()
-                  ? `${playingMovie.title} — SnapCinema`
-                  : 'SnapCinema demo short'
-              }
-              src={embedSrc}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : (
-            <div className="watch-short-placeholder">
-              <p>
-                Add YouTube scenes via the wallet menu (<strong>Scene</strong>), pick
-                a movie below, or set <code>VITE_YOUTUBE_SHORT_ID</code> /{' '}
-                <code>VITE_YOUTUBE_EMBED_URL</code> in <code>.env</code>.
-              </p>
-            </div>
-          )}
+          <WatchShortPlayback
+            key={playbackKey}
+            movie={playingMovie}
+            v0={v0}
+            v1={v1}
+            playback={playback}
+            envVid={envVid}
+            envEmbed={envEmbed}
+            playerTitle={playerTitle}
+          />
         </div>
         {playingMovie && (
           <p className="muted watch-now-playing-title">

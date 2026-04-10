@@ -361,12 +361,29 @@ export async function sendAndConfirm(
   return sig
 }
 
-/** P(version) for demo playback */
+/**
+ * Weighted index: P(i) ∝ max(rank_i, 0). Same bucket model as on-chain StakeToCurate.
+ * Falls back to uniform if all weights are zero.
+ */
+export function sampleWeightedIndex(ranks: bigint[]): number {
+  const n = ranks.length
+  if (n === 0) return 0
+  if (n === 1) return 0
+  let sum = 0n
+  for (const r of ranks) sum += r > 0n ? r : 0n
+  if (sum === 0n) return Math.floor(Math.random() * n)
+  const u =
+    BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) % sum
+  let acc = 0n
+  for (let i = 0; i < n; i++) {
+    const w = ranks[i]! > 0n ? ranks[i]! : 0n
+    acc += w
+    if (u < acc) return i
+  }
+  return n - 1
+}
+
+/** P(version) for demo playback (two-way case of sampleWeightedIndex). */
 export function sampleVersionIndex(ranks: [bigint, bigint]): 0 | 1 {
-  const a = ranks[0] ?? 0n
-  const b = ranks[1] ?? 0n
-  const s = a + b
-  if (s === 0n) return Math.random() < 0.5 ? 0 : 1
-  const u = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) % s
-  return u < a ? 0 : 1
+  return sampleWeightedIndex(ranks) as 0 | 1
 }
