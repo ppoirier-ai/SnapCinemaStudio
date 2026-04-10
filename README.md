@@ -21,7 +21,7 @@ Before the first `anchor build`, copy the scaffold program keypair into Anchor�
 
 ## Phase 1 — test on devnet
 
-1. **Tooling:** Rust **1.85+** (see [`rust-toolchain.toml`](rust-toolchain.toml)), [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools), [Anchor](https://www.anchor-lang.com/docs/installation) **0.30.x**.
+1. **Tooling:** Rust **1.86+** (see [`rust-toolchain.toml`](rust-toolchain.toml); required for current **avm** / `cargo install` of Anchor tooling), [Solana CLI](https://docs.solana.com/cli/install-solana-cli-tools), [Anchor](https://www.anchor-lang.com/docs/installation) **0.31.x** (install with `avm install 0.31.1 && avm use 0.31.1` so the CLI matches [`programs/stake_to_curate/Cargo.toml`](programs/stake_to_curate/Cargo.toml)).
 2. **Program keypair:** From repo root, `mkdir -p target/deploy && cp programs/stake_to_curate/keys/stake_to_curate-keypair.json target/deploy/stake_to_curate-keypair.json`.
 3. **Build & deploy:** `anchor build` then `anchor deploy --provider.cluster devnet` (wallet needs devnet SOL). Program ID must match [`Anchor.toml`](Anchor.toml) / `declare_id!` or update both + app env.
 4. **App:** `cd app && cp .env.example .env` — set `VITE_STAKE_TO_CURATE_PROGRAM_ID` if you deployed a different ID; optional `VITE_SOLANA_RPC` (defaults to public devnet). `npm install && npm run dev`. Use **Phantom** on **devnet**, fund the wallet, then use the UI: **Setup** → **stake** → **deposit** → **claim** → **Roll playback**.
