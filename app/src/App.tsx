@@ -203,11 +203,20 @@ export default function App() {
     append(`Playback sampled version ${i} (ranks ${v0.rank} / ${v1.rank})`)
   }
 
+  const versionHint = !connected
+    ? 'Connect wallet to load on-chain data.'
+    : 'No version account yet — run Setup below.'
+  const positionHint = !connected
+    ? 'Connect wallet to see your positions.'
+    : 'No open position for this version — stake first.'
+
   return (
     <main className="studio">
       <header className="top">
         <h1>SnapCinema Studio — Phase 1 demo</h1>
-        <WalletMultiButton />
+        <div className="wallet-slot">
+          <WalletMultiButton />
+        </div>
       </header>
 
       <p className="lede">
@@ -216,20 +225,21 @@ export default function App() {
         wallet with devnet SOL, then run the flow below.
       </p>
 
-      <section className="panel">
-        <h2>Chain</h2>
-        <p>
-          <span className="muted">Program</span>{' '}
+      <section className="panel" aria-labelledby="chain-heading">
+        <h2 id="chain-heading">Chain</h2>
+        <div>
+          <span className="field-label">Program</span>
           <code className="pid">{PROGRAM_ID.toBase58()}</code>
-        </p>
+        </div>
         {slotPk && (
-          <p>
-            <span className="muted">Slot PDA (id {DEMO_SLOT_ID})</span>{' '}
+          <div>
+            <span className="field-label">Slot PDA (id {DEMO_SLOT_ID})</span>
             <code className="pid">{slotPk.toBase58()}</code>
-          </p>
+          </div>
         )}
         <button
           type="button"
+          className="btn btn-primary"
           disabled={!connected || busy}
           onClick={() => void refreshOnChain()}
         >
@@ -237,21 +247,26 @@ export default function App() {
         </button>
       </section>
 
-      <section className="panel">
-        <h2>1. Initialize</h2>
+      <section className="panel" aria-labelledby="init-heading">
+        <h2 id="init-heading">1. Initialize</h2>
         <p className="muted">
           Creates slot {DEMO_SLOT_ID}, creator/platform = your wallet, two
           versions (ranks 1_000_000 and 200_000).
         </p>
-        <button type="button" disabled={!connected || busy} onClick={() => void onSetup()}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!connected || busy}
+          onClick={() => void onSetup()}
+        >
           Setup demo (init slot + 2 versions)
         </button>
       </section>
 
-      <section className="panel">
-        <h2>2. Versions &amp; ranks</h2>
+      <section className="panel" aria-labelledby="versions-heading">
+        <h2 id="versions-heading">2. Versions &amp; ranks</h2>
         <div className="grid2">
-          <div>
+          <div className="version-card">
             <h3>Version 0</h3>
             {v0 ? (
               <ul className="stats">
@@ -259,10 +274,10 @@ export default function App() {
                 <li>active stake: {lamportsToSol(v0.activeStake)} SOL</li>
               </ul>
             ) : (
-              <p className="muted">—</p>
+              <p className="muted empty-hint">{versionHint}</p>
             )}
           </div>
-          <div>
+          <div className="version-card">
             <h3>Version 1</h3>
             {v1 ? (
               <ul className="stats">
@@ -270,20 +285,28 @@ export default function App() {
                 <li>active stake: {lamportsToSol(v1.activeStake)} SOL</li>
               </ul>
             ) : (
-              <p className="muted">—</p>
+              <p className="muted empty-hint">{versionHint}</p>
             )}
           </div>
         </div>
       </section>
 
-      <section className="panel">
-        <h2>3. Stake (preset lamports)</h2>
-        <div className="btn-grid">
+      <section className="panel" aria-labelledby="stake-heading">
+        <h2 id="stake-heading">3. Stake (preset lamports)</h2>
+        <div className="stake-matrix" role="group" aria-label="Stake presets by amount">
+          <div className="stake-matrix-head">
+            <span className="stake-col-label">Preset</span>
+            <span className="stake-col-label stake-up">Up v0</span>
+            <span className="stake-col-label stake-up">Up v1</span>
+            <span className="stake-col-label stake-down">Down v0</span>
+            <span className="stake-col-label stake-down">Down v1</span>
+          </div>
           {PRESETS_LAMPORTS.map((lam) => (
-            <span key={lam.toString()} className="preset-row">
+            <div key={lam.toString()} className="stake-matrix-row">
               <span className="preset-label">{lamportsToSol(lam)} SOL</span>
               <button
                 type="button"
+                className="btn btn-ghost btn-up"
                 disabled={!connected || busy}
                 onClick={() => void onStakeUp(0, lam)}
               >
@@ -291,6 +314,7 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className="btn btn-ghost btn-up"
                 disabled={!connected || busy}
                 onClick={() => void onStakeUp(1, lam)}
               >
@@ -298,6 +322,7 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className="btn btn-ghost btn-down"
                 disabled={!connected || busy}
                 onClick={() => void onStakeDown(0, lam)}
               >
@@ -305,12 +330,13 @@ export default function App() {
               </button>
               <button
                 type="button"
+                className="btn btn-ghost btn-down"
                 disabled={!connected || busy}
                 onClick={() => void onStakeDown(1, lam)}
               >
                 Down v1
               </button>
-            </span>
+            </div>
           ))}
         </div>
         <p className="muted">
@@ -320,6 +346,7 @@ export default function App() {
         <div className="row">
           <button
             type="button"
+            className="btn btn-secondary"
             disabled={!connected || busy}
             onClick={() => void onUnstake(0)}
           >
@@ -327,6 +354,7 @@ export default function App() {
           </button>
           <button
             type="button"
+            className="btn btn-secondary"
             disabled={!connected || busy}
             onClick={() => void onUnstake(1)}
           >
@@ -335,10 +363,10 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel">
-        <h2>4. Your positions</h2>
+      <section className="panel" aria-labelledby="positions-heading">
+        <h2 id="positions-heading">4. Your positions</h2>
         <div className="grid2">
-          <div>
+          <div className="version-card">
             <h3>On version 0</h3>
             {pos0 ? (
               <ul className="stats">
@@ -349,10 +377,10 @@ export default function App() {
                 <li>accrued: {lamportsToSol(pos0.accruedRewards)} SOL</li>
               </ul>
             ) : (
-              <p className="muted">—</p>
+              <p className="muted empty-hint">{positionHint}</p>
             )}
           </div>
-          <div>
+          <div className="version-card">
             <h3>On version 1</h3>
             {pos1 ? (
               <ul className="stats">
@@ -363,14 +391,14 @@ export default function App() {
                 <li>accrued: {lamportsToSol(pos1.accruedRewards)} SOL</li>
               </ul>
             ) : (
-              <p className="muted">—</p>
+              <p className="muted empty-hint">{positionHint}</p>
             )}
           </div>
         </div>
       </section>
 
-      <section className="panel">
-        <h2>5. Revenue &amp; claim</h2>
+      <section className="panel" aria-labelledby="revenue-heading">
+        <h2 id="revenue-heading">5. Revenue &amp; claim</h2>
         <p className="muted">
           Deposits split 20% / 10% / 70% (creator / platform / curators). Passes all
           position accounts for that version (auto-fetched).
@@ -378,6 +406,7 @@ export default function App() {
         <div className="row">
           <button
             type="button"
+            className="btn btn-secondary"
             disabled={!connected || busy}
             onClick={() => void onDeposit(0, BigInt(200_000_000))}
           >
@@ -385,6 +414,7 @@ export default function App() {
           </button>
           <button
             type="button"
+            className="btn btn-primary"
             disabled={!connected || busy}
             onClick={() => void onClaim(0)}
           >
@@ -392,6 +422,7 @@ export default function App() {
           </button>
           <button
             type="button"
+            className="btn btn-secondary"
             disabled={!connected || busy}
             onClick={() => void onDeposit(1, BigInt(200_000_000))}
           >
@@ -399,6 +430,7 @@ export default function App() {
           </button>
           <button
             type="button"
+            className="btn btn-primary"
             disabled={!connected || busy}
             onClick={() => void onClaim(1)}
           >
@@ -407,22 +439,33 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel">
-        <h2>6. Mock playback</h2>
+      <section className="panel" aria-labelledby="playback-heading">
+        <h2 id="playback-heading">6. Mock playback</h2>
         <p className="muted">
           Weighted by on-chain ranks: P(v) ∝ rank_v / (rank0 + rank1).
         </p>
-        <button type="button" disabled={busy} onClick={onRollPlayback}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={busy}
+          onClick={onRollPlayback}
+        >
           Roll which version &quot;plays&quot;
         </button>
         {playback !== null && (
-          <p className="playback">Sampled version <strong>{playback}</strong></p>
+          <p className="playback">
+            Sampled version <strong>{playback}</strong>
+          </p>
         )}
       </section>
 
-      <section className="panel log-panel">
-        <h2>Log</h2>
-        <pre className="log">{log.join('\n') || '—'}</pre>
+      <section className="panel log-panel" aria-labelledby="log-heading">
+        <h2 id="log-heading">Log</h2>
+        <pre
+          className={`log${log.length === 0 ? ' log-empty-state' : ''}`}
+        >
+          {log.length > 0 ? log.join('\n') : 'No events yet — actions append here.'}
+        </pre>
       </section>
     </main>
   )
