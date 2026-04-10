@@ -3,6 +3,8 @@ import type { DemoRole } from './types'
 type Props = {
   role: DemoRole
   onChange: (r: DemoRole) => void
+  /** If set, only these roles appear (e.g. Studio hides Scenes — use Scene in menu). */
+  roles?: DemoRole[]
 }
 
 const LABELS: Record<DemoRole, string> = {
@@ -11,8 +13,10 @@ const LABELS: Record<DemoRole, string> = {
   fan: 'Scenes',
 }
 
-export function RoleTabs({ role, onChange }: Props) {
-  const ids: DemoRole[] = ['admin', 'creator', 'fan']
+const DEFAULT_ROLES: DemoRole[] = ['admin', 'creator', 'fan']
+
+export function RoleTabs({ role, onChange, roles = DEFAULT_ROLES }: Props) {
+  const ids = roles
   return (
     <div className="role-tabs" role="tablist" aria-label="Demo role">
       {ids.map((r) => (

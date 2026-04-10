@@ -13,7 +13,7 @@ export function ContributePage() {
       >
         ← Back to Watch
       </button>
-      <FanSceneBoard subheading="This is the same scene board as Studio → Scenes. Everything saves in your browser only." />
+      <FanSceneBoard subheading="Same scene matrix as the wallet menu Scene entry. Everything saves in this browser only." />
     </main>
   )
 }

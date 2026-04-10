@@ -73,7 +73,7 @@ export function WalletMenu({ variant }: Props) {
             role="menuitem"
             onClick={() => setOpen(false)}
           >
-            Studio demo
+            Studio
           </NavLink>
           <NavLink
             to="/contribute"
@@ -81,7 +81,7 @@ export function WalletMenu({ variant }: Props) {
             role="menuitem"
             onClick={() => setOpen(false)}
           >
-            Scene board
+            Scene
           </NavLink>
           <NavLink
             to="/account"

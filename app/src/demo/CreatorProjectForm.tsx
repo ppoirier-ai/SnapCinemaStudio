@@ -129,8 +129,8 @@ export function CreatorProjectForm() {
       <h2 id="creator-concept-heading">Your movie concepts</h2>
       <p className="muted">
         Only the wallet that created a concept can change its title and description.
-        Scene cuts for <em>all</em> movies are managed on the <strong>Scenes</strong>{' '}
-        tab (with a movie picker there).
+        Scene cuts for <em>all</em> movies are managed from the wallet menu under{' '}
+        <strong>Scene</strong> (with a movie picker there).
       </p>
 
       {!connected || !wallet ? (

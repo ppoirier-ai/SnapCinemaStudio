@@ -75,8 +75,8 @@ export function WatchPage() {
           ) : (
             <div className="watch-short-placeholder">
               <p>
-                Add YouTube scenes to a movie on the <strong>Scenes</strong> tab, pick
-                it below, or set <code>VITE_YOUTUBE_SHORT_ID</code> /{' '}
+                Add YouTube scenes via the wallet menu (<strong>Scene</strong>), pick
+                a movie below, or set <code>VITE_YOUTUBE_SHORT_ID</code> /{' '}
                 <code>VITE_YOUTUBE_EMBED_URL</code> in <code>.env</code>.
               </p>
             </div>
@@ -92,12 +92,6 @@ export function WatchPage() {
           <p className="muted watch-curate-hint">
             On-chain sample: curating <strong>version {playback}</strong> (thumbs use
             0.01 SOL on devnet).
-          </p>
-        )}
-        {playback === null && connected && (
-          <p className="muted watch-curate-hint">
-            Initialize the demo slot under <strong>Studio demo</strong> → Admin so
-            two versions exist; then a sampled version appears here for reactions.
           </p>
         )}
         <div className="watch-reaction-bar" role="group" aria-label="Curate clip">
@@ -138,7 +132,7 @@ export function WatchPage() {
         {movies.length === 0 ? (
           <p className="muted watch-library-empty">
             No movies in this browser yet. Create a concept under Studio → Creator and
-            add scenes under Scenes.
+            add scenes from the wallet menu (Scene).
           </p>
         ) : (
           <ul className="watch-movie-strip">

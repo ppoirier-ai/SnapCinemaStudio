@@ -77,7 +77,7 @@ export function FanSceneBoard({ subheading }: Props) {
 
   return (
     <section className="panel fan-scene-board" aria-labelledby="scene-board-heading">
-      <h2 id="scene-board-heading">Scenes</h2>
+      <h2 id="scene-board-heading">Scene</h2>
       <p className="muted fan-scene-board-legend">
         Choose a movie, then edit its scene matrix. <strong>Columns</strong> are time;
         <strong>rows</strong> are alternate Shorts-style cuts. Anyone can add or replace
