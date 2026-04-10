@@ -19,6 +19,10 @@ On-chain **proof-of-curation** primitive for SnapCinema Studio. Full mechanics a
 
 3. Regenerate a fresh program id for a serious deployment: new keypair, update `declare_id!`, `[programs.*]` in `Anchor.toml`, and redeploy — do **not** reuse the scaffold keypair on mainnet.
 
+## Web demo: shared slot (Watch)
+
+The Vite app keys the demo slot by `(authority, slot_id)`. For **Watch**, set **`VITE_STAKE_SLOT_AUTHORITY`** in `app/.env` to the **base58 pubkey** of the wallet that will run **Studio → Admin → Initialize** once. Every viewer then uses that same slot for ranks and stakes while signing only as **position owner**. Omit the variable for local solo use (connected wallet is both authority and staker). See `app/.env.example`.
+
 ## API (Phase 1 — implemented)
 
 | Instruction | Role |

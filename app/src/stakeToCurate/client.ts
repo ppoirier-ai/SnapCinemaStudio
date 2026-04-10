@@ -29,6 +29,31 @@ export const DEFAULT_RPC =
 
 export const DEMO_SLOT_ID = 0
 
+/**
+ * Optional shared demo slot owner (base58). When set, all users read the same
+ * slot/version PDAs and stake with `authorityForSlot` = this key; initialize
+ * once with the wallet that matches this pubkey. When unset, the connected
+ * wallet is both authority and staker (solo dev).
+ */
+export function stakeSlotAuthorityFromEnv(): PublicKey | null {
+  const raw = import.meta.env.VITE_STAKE_SLOT_AUTHORITY
+  if (raw == null || String(raw).trim() === '') return null
+  try {
+    return new PublicKey(String(raw).trim())
+  } catch {
+    console.warn(
+      'VITE_STAKE_SLOT_AUTHORITY is not valid base58; falling back to connected wallet',
+    )
+    return null
+  }
+}
+
+export function resolveStakeSlotAuthority(
+  connectedPublicKey: PublicKey | null,
+): PublicKey | null {
+  return stakeSlotAuthorityFromEnv() ?? connectedPublicKey
+}
+
 export function slotPda(authority: PublicKey, slotId: number): PublicKey {
   const [pda] = PublicKey.findProgramAddressSync(
     [Buffer.from('slot'), authority.toBuffer(), Buffer.from([slotId & 0xff])],

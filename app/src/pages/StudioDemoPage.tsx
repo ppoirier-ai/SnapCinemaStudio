@@ -59,8 +59,10 @@ export function StudioDemoPage() {
         <p className="lede">
           <strong>Platform admin:</strong> deploy{' '}
           <code>programs/stake_to_curate</code> to <strong>devnet</strong>, set{' '}
-          <code>VITE_STAKE_TO_CURATE_PROGRAM_ID</code> if your program id differs,
-          fund this wallet with devnet SOL, then refresh and initialize below.
+          <code>VITE_STAKE_TO_CURATE_PROGRAM_ID</code> if your program id differs, set{' '}
+          <code>VITE_STAKE_SLOT_AUTHORITY</code> to the admin wallet pubkey so all
+          viewers share one slot (see <code>app/.env.example</code>), fund that wallet
+          with devnet SOL, connect it here, then initialize below once.
         </p>
       )}
 

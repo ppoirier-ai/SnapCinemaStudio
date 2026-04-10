@@ -122,7 +122,6 @@ export function WatchPage() {
     v1,
     onStakeUp,
     onStakeDown,
-    onSetup,
     setToast,
   } = useDemoSlot()
 
@@ -186,28 +185,12 @@ export function WatchPage() {
           </p>
         )}
         {slotMissingOnChain && (
-          <div
-            className="watch-slot-setup-notice"
-            role="region"
-            aria-labelledby="watch-slot-setup-heading"
-          >
-            <h2 id="watch-slot-setup-heading" className="watch-slot-setup-title">
-              Enable StakeToCurate
-            </h2>
-            <p className="muted watch-slot-setup-copy">
-              Thumbs and flag send <code>stake_up</code> / <code>stake_down</code> on
-              the demo slot (0.01 SOL each on devnet). Initialize the slot once with
-              this wallet, or use <strong>Studio → Admin → Initialize</strong>.
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary watch-slot-setup-btn"
-              disabled={busy}
-              onClick={() => void onSetup()}
-            >
-              {busy ? 'Working…' : 'Initialize demo slot + versions'}
-            </button>
-          </div>
+          <p className="muted watch-curate-hint" role="note">
+            The shared demo slot is not initialized on this cluster yet. A platform
+            admin must connect the <strong>slot authority</strong> wallet and run{' '}
+            <strong>Studio → Admin → Initialize</strong> once (see{' '}
+            <code>VITE_STAKE_SLOT_AUTHORITY</code> in <code>.env.example</code>).
+          </p>
         )}
         {playback !== null && chainSynced && (
           <p className="muted watch-curate-hint">

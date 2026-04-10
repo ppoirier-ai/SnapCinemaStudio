@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
+import type { PublicKey } from '@solana/web3.js'
 import {
   DEMO_SLOT_ID,
   decodePosition,
@@ -23,6 +24,7 @@ import {
   ixStakeUp,
   ixUnstake,
   positionPda,
+  resolveStakeSlotAuthority,
   sampleVersionIndex,
   sendAndConfirm,
   slotPda,
@@ -35,6 +37,8 @@ type P = ReturnType<typeof decodePosition>
 type DemoSlotValue = {
   /** True after the latest `refreshOnChain` finished (success or failure). */
   chainSynced: boolean
+  /** On-chain slot authority PDA seed (env or connected wallet). */
+  slotAuthority: PublicKey | null
   authority: ReturnType<typeof useWallet>['publicKey']
   publicKey: ReturnType<typeof useWallet>['publicKey']
   connected: boolean
@@ -89,10 +93,14 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     ])
   }, [])
 
-  const authority = publicKey
+  const slotAuthorityPk = useMemo(
+    () => resolveStakeSlotAuthority(publicKey),
+    [publicKey],
+  )
   const slotPk = useMemo(
-    () => (authority ? slotPda(authority, DEMO_SLOT_ID) : null),
-    [authority],
+    () =>
+      slotAuthorityPk ? slotPda(slotAuthorityPk, DEMO_SLOT_ID) : null,
+    [slotAuthorityPk],
   )
   const v0Pk = useMemo(
     () => (slotPk ? versionPda(slotPk, 0) : null),
@@ -104,7 +112,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   )
 
   const refreshOnChain = useCallback(async () => {
-    if (!authority || !v0Pk || !v1Pk) {
+    if (!slotAuthorityPk || !v0Pk || !v1Pk || !publicKey) {
       setChainSynced(true)
       return
     }
@@ -118,8 +126,8 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       if (a1?.data) setV1(decodeVersion(Buffer.from(a1.data)))
       else setV1(null)
       const [p0, p1] = await Promise.all([
-        connection.getAccountInfo(positionPda(v0Pk, authority)),
-        connection.getAccountInfo(positionPda(v1Pk, authority)),
+        connection.getAccountInfo(positionPda(v0Pk, publicKey)),
+        connection.getAccountInfo(positionPda(v1Pk, publicKey)),
       ])
       if (p0?.data) setPos0(decodePosition(Buffer.from(p0.data)))
       else setPos0(null)
@@ -130,7 +138,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     } finally {
       setChainSynced(true)
     }
-  }, [authority, connection, v0Pk, v1Pk])
+  }, [connection, publicKey, slotAuthorityPk, v0Pk, v1Pk])
 
   useEffect(() => {
     if (!v0 && !v1) {
@@ -163,13 +171,13 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   }, [toast])
 
   useEffect(() => {
-    if (!connected || !authority) {
+    if (!connected || !publicKey) {
       setChainSynced(false)
       return
     }
     setChainSynced(false)
     void refreshOnChain()
-  }, [connected, authority, refreshOnChain])
+  }, [connected, publicKey, refreshOnChain])
 
   const run = async (label: string, fn: () => Promise<void>) => {
     setBusy(true)
@@ -187,79 +195,103 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
 
   const onSetup = () =>
     run('setup slot + versions', async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction)
         throw new Error('Connect wallet first')
-      const creator = authority
-      const platform = authority
+      const slotAuth = resolveStakeSlotAuthority(publicKey)
+      if (!slotAuth) throw new Error('Connect wallet first')
+      if (!publicKey.equals(slotAuth)) {
+        throw new Error(
+          'Connect the slot authority wallet to initialize (must match VITE_STAKE_SLOT_AUTHORITY when set), or clear that env to use your wallet as authority.',
+        )
+      }
       await sendAndConfirm(
         connection,
-        { publicKey: authority, signTransaction },
+        { publicKey, signTransaction },
         [
-          ixInitializeSlot(authority, creator, platform, DEMO_SLOT_ID),
-          ixRegisterVersion(authority, DEMO_SLOT_ID, 0, 1_000_000n),
-          ixRegisterVersion(authority, DEMO_SLOT_ID, 1, 200_000n),
+          ixInitializeSlot(slotAuth, slotAuth, slotAuth, DEMO_SLOT_ID),
+          ixRegisterVersion(slotAuth, DEMO_SLOT_ID, 0, 1_000_000n),
+          ixRegisterVersion(slotAuth, DEMO_SLOT_ID, 1, 200_000n),
         ],
       )
     })
 
   const onStakeUp = (versionIndex: 0 | 1, lamports: bigint) =>
     run(`stake_up v${versionIndex}`, async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction || !slotAuthorityPk)
         throw new Error('Connect wallet first')
       await sendAndConfirm(
         connection,
-        { publicKey: authority, signTransaction },
+        { publicKey, signTransaction },
         [
-          ixStakeUp(authority, authority, DEMO_SLOT_ID, versionIndex, lamports),
+          ixStakeUp(
+            publicKey,
+            slotAuthorityPk,
+            DEMO_SLOT_ID,
+            versionIndex,
+            lamports,
+          ),
         ],
       )
     })
 
   const onStakeDown = (versionIndex: 0 | 1, lamports: bigint) =>
     run(`stake_down v${versionIndex}`, async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction || !slotAuthorityPk)
         throw new Error('Connect wallet first')
       await sendAndConfirm(
         connection,
-        { publicKey: authority, signTransaction },
+        { publicKey, signTransaction },
         [
-          ixStakeDown(authority, authority, DEMO_SLOT_ID, versionIndex, lamports),
+          ixStakeDown(
+            publicKey,
+            slotAuthorityPk,
+            DEMO_SLOT_ID,
+            versionIndex,
+            lamports,
+          ),
         ],
       )
     })
 
   const onUnstake = (versionIndex: 0 | 1) =>
     run(`unstake v${versionIndex}`, async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction || !slotAuthorityPk)
         throw new Error('Connect wallet first')
       await sendAndConfirm(
         connection,
-        { publicKey: authority, signTransaction },
-        [ixUnstake(authority, authority, DEMO_SLOT_ID, versionIndex)],
+        { publicKey, signTransaction },
+        [
+          ixUnstake(
+            publicKey,
+            slotAuthorityPk,
+            DEMO_SLOT_ID,
+            versionIndex,
+          ),
+        ],
       )
     })
 
   const onDeposit = (versionIndex: 0 | 1, lamports: bigint) =>
     run(`deposit_revenue v${versionIndex}`, async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction || !slotAuthorityPk)
         throw new Error('Connect wallet first')
-      const slot = slotPda(authority, DEMO_SLOT_ID)
+      const slot = slotPda(slotAuthorityPk, DEMO_SLOT_ID)
       const ver = versionPda(slot, versionIndex)
       const positions = await fetchPositionsForVersion(connection, ver)
       if (positions.length === 0)
         throw new Error('No positions for this version — stake first')
       await sendAndConfirm(
         connection,
-        { publicKey: authority, signTransaction },
+        { publicKey, signTransaction },
         [
           ixDepositRevenue(
-            authority,
-            authority,
+            publicKey,
+            slotAuthorityPk,
             DEMO_SLOT_ID,
             versionIndex,
             lamports,
-            authority,
-            authority,
+            slotAuthorityPk,
+            slotAuthorityPk,
             positions.map((p) => p.pubkey),
           ),
         ],
@@ -268,18 +300,25 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
 
   const onClaim = (versionIndex: 0 | 1) =>
     run(`claim_curator v${versionIndex}`, async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction || !slotAuthorityPk)
         throw new Error('Connect wallet first')
       await sendAndConfirm(
         connection,
-        { publicKey: authority, signTransaction },
-        [ixClaimCurator(authority, authority, DEMO_SLOT_ID, versionIndex)],
+        { publicKey, signTransaction },
+        [
+          ixClaimCurator(
+            publicKey,
+            slotAuthorityPk,
+            DEMO_SLOT_ID,
+            versionIndex,
+          ),
+        ],
       )
     })
 
   const onClaimAll = () =>
     run('claim all curator rewards', async () => {
-      if (!authority || !signTransaction)
+      if (!publicKey || !signTransaction || !slotAuthorityPk)
         throw new Error('Connect wallet first')
       const has0 = pos0 && pos0.accruedRewards > 0n
       const has1 = pos1 && pos1.accruedRewards > 0n
@@ -288,15 +327,29 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       if (has0) {
         await sendAndConfirm(
           connection,
-          { publicKey: authority, signTransaction },
-          [ixClaimCurator(authority, authority, DEMO_SLOT_ID, 0)],
+          { publicKey, signTransaction },
+          [
+            ixClaimCurator(
+              publicKey,
+              slotAuthorityPk,
+              DEMO_SLOT_ID,
+              0,
+            ),
+          ],
         )
       }
       if (has1) {
         await sendAndConfirm(
           connection,
-          { publicKey: authority, signTransaction },
-          [ixClaimCurator(authority, authority, DEMO_SLOT_ID, 1)],
+          { publicKey, signTransaction },
+          [
+            ixClaimCurator(
+              publicKey,
+              slotAuthorityPk,
+              DEMO_SLOT_ID,
+              1,
+            ),
+          ],
         )
       }
     })
@@ -313,7 +366,8 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
 
   const value: DemoSlotValue = {
     chainSynced,
-    authority,
+    slotAuthority: slotAuthorityPk,
+    authority: publicKey,
     publicKey,
     connected,
     signTransaction,
