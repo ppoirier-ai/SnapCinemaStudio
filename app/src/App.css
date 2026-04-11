@@ -1242,6 +1242,33 @@
   color: var(--st-heading);
 }
 
+.watch-instant-session {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem auto 0;
+  max-width: 42rem;
+  border: 1px solid var(--st-border);
+  border-radius: 0.5rem;
+  background: var(--st-surface-2);
+  font-size: 0.875rem;
+}
+
+.watch-instant-session-status {
+  margin: 0;
+  text-align: center;
+  color: var(--st-heading);
+}
+
+.watch-instant-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
 .watch-reaction-bar {
   display: flex;
   justify-content: center;

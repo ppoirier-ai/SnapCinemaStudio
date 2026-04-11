@@ -7,6 +7,7 @@ import {
   type Movie,
 } from '../context/SceneBoardContext'
 import { FAN_REACTION_LAMPORTS } from '../demo/constants'
+import { lamportsToSol } from '../demo/format'
 import { IconFlag, IconThumbDown, IconThumbUp } from '../components/ReactionIcons'
 import { envYoutubeVideoId, youtubeEmbedSrc } from '../lib/youtubeEmbed'
 import { buildWatchPlaylist } from '../lib/watchPlaylist'
@@ -18,6 +19,16 @@ function posterForMovie(m: Movie): string | null {
 }
 
 type VersionRow = { rank: bigint } | null
+
+function formatSessionTimeLeft(expiresAtMs: number): string {
+  const ms = Math.max(0, expiresAtMs - Date.now())
+  const totalSec = Math.floor(ms / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  const s = totalSec % 60
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
 
 function WatchShortPlayback({
   movie,
@@ -118,11 +129,19 @@ export function WatchPage() {
     playback,
     busy,
     connected,
+    signTransaction,
     v0,
     v1,
     onStakeUp,
     onStakeDown,
     setToast,
+    instantSessionMeta,
+    instantSessionBalanceLamports,
+    instantStakingSessionActive,
+    enableInstantStaking,
+    topUpInstantSession,
+    endInstantSession,
+    ensureInstantSessionForWatch,
   } = useDemoSlot()
 
   const playingMovie =
@@ -134,21 +153,37 @@ export function WatchPage() {
   const slotMissingOnChain =
     chainSynced && v0 === null && v1 === null
   const reactionsDisabled =
-    !connected || busy || playback === null || !chainSynced
+    !connected ||
+    busy ||
+    playback === null ||
+    !chainSynced ||
+    (!signTransaction && !instantStakingSessionActive)
 
-  const onThumbUp = () => {
+  const onThumbUp = async () => {
     if (playback === null) return
+    if (!instantStakingSessionActive) {
+      const ok = await ensureInstantSessionForWatch()
+      if (!ok) return
+    }
     void onStakeUp(playback, FAN_REACTION_LAMPORTS)
   }
 
-  const onThumbDown = () => {
+  const onThumbDown = async () => {
     if (playback === null) return
+    if (!instantStakingSessionActive) {
+      const ok = await ensureInstantSessionForWatch()
+      if (!ok) return
+    }
     void onStakeDown(playback, FAN_REACTION_LAMPORTS)
   }
 
   /** Flag uses `stake_down` on the playing version (same primitive, strong negative signal). */
-  const onFlag = () => {
+  const onFlag = async () => {
     if (playback === null) return
+    if (!instantStakingSessionActive) {
+      const ok = await ensureInstantSessionForWatch()
+      if (!ok) return
+    }
     void onStakeDown(playback, FAN_REACTION_LAMPORTS)
     setToast('Flag sent: stake_down on this version (devnet).')
   }
@@ -197,7 +232,64 @@ export function WatchPage() {
             StakeToCurate: you are curating <strong>version {playback}</strong> (up /
             down / flag each stake 0.01 SOL on devnet; flag uses{' '}
             <code>stake_down</code>).
+            {instantStakingSessionActive && (
+              <>
+                {' '}
+                Instant mode: thumbs sign with your session wallet (no extra Phantom
+                popups).
+              </>
+            )}
           </p>
+        )}
+        {connected && chainSynced && (
+          <div className="watch-instant-session" aria-label="Instant staking session">
+            {instantStakingSessionActive && instantSessionMeta ? (
+              <p className="watch-instant-session-status" role="status">
+                Session active —{' '}
+                {instantSessionBalanceLamports != null
+                  ? `${lamportsToSol(instantSessionBalanceLamports)} SOL`
+                  : '… SOL'}{' '}
+                on session wallet · {formatSessionTimeLeft(instantSessionMeta.expiresAtMs)}{' '}
+                left
+              </p>
+            ) : (
+              <p className="muted watch-instant-session-status" role="note">
+                One Phantom approval funds a 2.5h session (up to 1 SOL); every thumbs
+                up/down after that is instant.
+              </p>
+            )}
+            <div className="watch-instant-session-actions">
+              {!instantStakingSessionActive ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={!connected || busy || !signTransaction}
+                  onClick={() => enableInstantStaking()}
+                >
+                  Enable Instant Staking
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy || !signTransaction}
+                    onClick={() => topUpInstantSession()}
+                  >
+                    Top Up Session (1 SOL max)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    disabled={busy}
+                    onClick={() => endInstantSession()}
+                  >
+                    End Session
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         )}
         <div className="watch-reaction-bar" role="group" aria-label="Curate clip">
           <button

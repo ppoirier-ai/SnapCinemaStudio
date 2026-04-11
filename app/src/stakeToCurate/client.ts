@@ -2,6 +2,7 @@ import { Buffer } from 'buffer'
 import bs58 from 'bs58'
 import {
   Connection,
+  Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
@@ -401,6 +402,47 @@ export async function sendAndConfirm(
   const optimisticSig = transactionSignatureBase58(signed)
   try {
     const sig = await connection.sendRawTransaction(signed.serialize(), {
+      skipPreflight: false,
+      preflightCommitment: commitment,
+    })
+    await connection.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight },
+      commitment,
+    )
+    return sig
+  } catch (e) {
+    const text = e instanceof Error ? e.message : String(e)
+    if (
+      optimisticSig &&
+      text.includes('already been processed') &&
+      (await signatureAlreadyConfirmed(connection, optimisticSig))
+    ) {
+      return optimisticSig
+    }
+    throw e
+  }
+}
+
+/**
+ * Build, sign with an ephemeral {@link Keypair}, send, and confirm — no wallet adapter.
+ * Used for instant-staking session thumbs after the custodian wallet funds the session key.
+ */
+export async function sendAndConfirmWithKeypair(
+  connection: Connection,
+  signer: Keypair,
+  instructions: TransactionInstruction[],
+  commitment: 'confirmed' | 'finalized' = 'confirmed',
+): Promise<string> {
+  const { blockhash, lastValidBlockHeight } =
+    await connection.getLatestBlockhash()
+  const tx = new Transaction({
+    recentBlockhash: blockhash,
+    feePayer: signer.publicKey,
+  }).add(...instructions)
+  tx.sign(signer)
+  const optimisticSig = transactionSignatureBase58(tx)
+  try {
+    const sig = await connection.sendRawTransaction(tx.serialize(), {
       skipPreflight: false,
       preflightCommitment: commitment,
     })
