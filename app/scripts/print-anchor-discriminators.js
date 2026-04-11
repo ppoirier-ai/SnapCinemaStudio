@@ -7,12 +7,11 @@ const { createHash } = require('crypto')
 
 const names = [
   'initialize_slot',
-  'register_version',
-  'stake_up',
-  'stake_down',
-  'unstake',
-  'deposit_revenue',
-  'claim_curator',
+  'register_scene',
+  'stake_scene_up',
+  'stake_scene_down',
+  'unstake_scene',
+  'reset_scene_rank',
 ]
 
 for (const n of names) {

@@ -1,52 +1,40 @@
-import { decodePosition } from '../stakeToCurate/client'
+import { decodeScenePosition } from '../stakeToCurate/client'
 import { lamportsToSol } from './format'
 
-type P = ReturnType<typeof decodePosition>
+type P = ReturnType<typeof decodeScenePosition>
 
 type Props = {
-  pos0: P | null
-  pos1: P | null
+  positions: Array<{ sceneKeyHex: string; position: P }>
   connected: boolean
 }
 
-export function PositionsPanel({ pos0, pos1, connected }: Props) {
+export function PositionsPanel({ positions, connected }: Props) {
   const positionHint = !connected
     ? 'Connect wallet to see your positions.'
-    : 'No open position for this version — stake first.'
+    : 'No open scene positions — stake from Watch or Scene hover.'
 
   return (
     <section className="panel" aria-labelledby="positions-heading">
-      <h2 id="positions-heading">4. Your positions</h2>
-      <div className="grid2">
-        <div className="version-card">
-          <h3>On version 0</h3>
-          {pos0 ? (
-            <ul className="stats">
-              <li>staked: {lamportsToSol(pos0.amount)} SOL</li>
-              <li>side: {pos0.isUp ? 'up' : 'down'}</li>
-              <li>active: {pos0.isActive ? 'yes' : 'residual'}</li>
-              <li>entry_rank: {pos0.entryRank.toString()}</li>
-              <li>accrued: {lamportsToSol(pos0.accruedRewards)} SOL</li>
-            </ul>
-          ) : (
-            <p className="muted empty-hint">{positionHint}</p>
-          )}
-        </div>
-        <div className="version-card">
-          <h3>On version 1</h3>
-          {pos1 ? (
-            <ul className="stats">
-              <li>staked: {lamportsToSol(pos1.amount)} SOL</li>
-              <li>side: {pos1.isUp ? 'up' : 'down'}</li>
-              <li>active: {pos1.isActive ? 'yes' : 'residual'}</li>
-              <li>entry_rank: {pos1.entryRank.toString()}</li>
-              <li>accrued: {lamportsToSol(pos1.accruedRewards)} SOL</li>
-            </ul>
-          ) : (
-            <p className="muted empty-hint">{positionHint}</p>
-          )}
-        </div>
-      </div>
+      <h2 id="positions-heading">4. Your scene positions</h2>
+      {positions.length === 0 ? (
+        <p className="muted empty-hint">{positionHint}</p>
+      ) : (
+        <ul className="stats scene-position-list">
+          {positions.map(({ sceneKeyHex, position }) => (
+            <li key={sceneKeyHex} className="scene-position-item">
+              <div className="muted scene-key-mono">
+                {sceneKeyHex.slice(0, 12)}…{sceneKeyHex.slice(-8)}
+              </div>
+              <ul className="stats nested">
+                <li>staked: {lamportsToSol(position.amount)} SOL</li>
+                <li>side: {position.isUp ? 'up' : 'down'}</li>
+                <li>active: {position.isActive ? 'yes' : 'residual'}</li>
+                <li>entry_rank: {position.entryRank.toString()}</li>
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChainPanel } from '../demo/ChainPanel'
 import { CreatorProjectForm } from '../demo/CreatorProjectForm'
@@ -18,31 +18,38 @@ export function StudioDemoPage() {
     connected,
     busy,
     slotPk,
-    pos0,
-    pos1,
-    playback,
+    sceneRows,
     log,
     refreshOnChain,
     onSetup,
-    onDeposit,
-    onClaim,
-    onRollPlayback,
   } = useDemoSlot()
+
+  const positions = useMemo(
+    () =>
+      Object.entries(sceneRows)
+        .filter(([, row]) => row.position && row.position.amount > 0n)
+        .map(([sceneKeyHex, row]) => ({
+          sceneKeyHex,
+          position: row.position!,
+        })),
+    [sceneRows],
+  )
 
   return (
     <main className="studio studio-demo-page">
       <div className="studio-demo-intro">
         <h1 className="studio-demo-title">Studio</h1>
         <p className="muted studio-demo-tagline">
-          Phase 1 flow — pick a role. Reactions and playback live on{' '}
+          Phase 1 flow — pick a role. Reactions on{' '}
           <button
             type="button"
             className="btn btn-ghost studio-inline-link"
             onClick={() => navigate('/watch')}
           >
             Watch
-          </button>
-          . Scene editing is under the wallet menu (<strong>Scene</strong>).
+          </button>{' '}
+          target the <strong>currently playing scene</strong> (per-cell on-chain rank).
+          Scene editing is under the wallet menu (<strong>Scene</strong>).
         </p>
       </div>
 
@@ -63,8 +70,8 @@ export function StudioDemoPage() {
         <p className="lede">
           <strong>Creator:</strong> save your project title and description here.
           Scene YouTube links and alternates are edited from the wallet menu under{' '}
-          <strong>Scene</strong> for ranks, stakes, and the scene matrix. Revenue tools
-          below use the same on-chain v0 / v1.
+          <strong>Scene</strong>. Each playable cell gets its own on-chain scene account
+          when the slot authority saves a URL there.
         </p>
       )}
 
@@ -75,7 +82,7 @@ export function StudioDemoPage() {
             slotPk={slotPk}
             connected={connected}
             busy={busy}
-            onRefresh={refreshOnChain}
+            onRefresh={() => void refreshOnChain(null)}
           />
           <InitPanel
             demoSlotId={DEMO_SLOT_ID}
@@ -90,12 +97,7 @@ export function StudioDemoPage() {
       {role === 'creator' && (
         <>
           <CreatorProjectForm />
-          <RevenuePanel
-            connected={connected}
-            busy={busy}
-            onDeposit={onDeposit}
-            onClaim={onClaim}
-          />
+          <RevenuePanel />
         </>
       )}
 
@@ -105,36 +107,11 @@ export function StudioDemoPage() {
             <h2>Advanced tools</h2>
             <p className="muted">
               Ranks and stake / downstake live on the wallet menu <strong>Scene</strong>{' '}
-              page. Positions detail and mock playback stay here for testing.
+              page (per-scene tooltips) and on <strong>Watch</strong> for the playing clip.
             </p>
           </section>
-          <PositionsPanel pos0={pos0} pos1={pos1} connected={connected} />
-          <RevenuePanel
-            connected={connected}
-            busy={busy}
-            onDeposit={onDeposit}
-            onClaim={onClaim}
-          />
-          <section className="panel" aria-labelledby="playback-admin-heading">
-            <h2 id="playback-admin-heading">Mock playback (test)</h2>
-            <p className="muted">
-              Same rank-weighted sampling as the <strong>Watch</strong> page embed
-              path.
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={busy}
-              onClick={onRollPlayback}
-            >
-              Roll which version &quot;plays&quot;
-            </button>
-            {playback !== null && (
-              <p className="playback">
-                Sampled version <strong>{playback}</strong>
-              </p>
-            )}
-          </section>
+          <PositionsPanel positions={positions} connected={connected} />
+          <RevenuePanel />
         </>
       )}
     </main>

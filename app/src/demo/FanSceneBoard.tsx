@@ -1,14 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import {
   getFirstYoutubeVideoIdFromMovie,
   useMovies,
   type Movie,
 } from '../context/SceneBoardContext'
-import {
-  playableVideoCount,
-  tooltipForkForPlayableCell,
-} from '../lib/sceneForkMap'
+import { sceneKeyHex } from '../stakeToCurate/sceneKey'
 import {
   extractYoutubeVideoId,
   isProbablyYoutubeUrl,
@@ -41,15 +38,41 @@ export function FanSceneBoard({ subheading }: Props) {
     chainSynced,
     connected,
     busy,
-    v0,
-    v1,
-    pos0,
-    pos1,
+    getSceneRow,
+    ensureScenesRegisteredForMovie,
+    refreshOnChain,
     onUnstake,
   } = useDemoSlot()
 
   const active = selectedMovieId ? getMovie(selectedMovieId) : null
   const movieId = active?.id
+
+  const sceneMatrixDigest = useMemo(() => {
+    if (!active) return ''
+    return active.columns
+      .map((c) =>
+        c.cells.map((cell) => `${cell.id}:${cell.youtubeUrl ?? ''}`).join('|'),
+      )
+      .join('>')
+  }, [active])
+
+  useEffect(() => {
+    if (!active || !connected) return
+    void (async () => {
+      try {
+        await ensureScenesRegisteredForMovie(active)
+        await refreshOnChain(active)
+      } catch (e) {
+        console.error(e)
+      }
+    })()
+  }, [
+    active,
+    connected,
+    ensureScenesRegisteredForMovie,
+    refreshOnChain,
+    sceneMatrixDigest,
+  ])
 
   const [editor, setEditor] = useState<EditorTarget | null>(null)
   const [urlDraft, setUrlDraft] = useState('')
@@ -96,11 +119,10 @@ export function FanSceneBoard({ subheading }: Props) {
       <h2 id="scene-board-heading">Scene</h2>
       <p className="muted fan-scene-board-legend">
         Choose a movie, then edit its scene matrix. <strong>Columns</strong> are time;
-        <strong>rows</strong> are alternate Shorts-style cuts. Anyone can add or replace
-        scenes for any movie in this browser. When a column has <strong>exactly two</strong>{' '}
-        clips with URLs, <strong>Alt 1</strong> maps to on-chain <strong>fork 0</strong> and{' '}
-        <strong>Alt 2</strong> to <strong>fork 1</strong> (same two forks as Watch). Hover a
-        thumbnail for rank, stakes, and actions.
+        <strong>rows</strong> are alternate Shorts-style cuts. Each playable cell has its own
+        on-chain <strong>Scene</strong> (rank / stake). The slot authority wallet registers
+        scenes when URLs are saved. <strong>Watch</strong> picks among alternates per time
+        column using only those scenes’ ranks. Hover a thumbnail for stats and unstake.
       </p>
       {subheading && <p className="muted fan-scene-board-sub">{subheading}</p>}
 
@@ -154,6 +176,11 @@ export function FanSceneBoard({ subheading }: Props) {
                   <div className="scene-column-cells">
                     {col.cells.map((cell, rowIndex) => {
                       const id = extractYoutubeVideoId(cell.youtubeUrl ?? '')
+                      const skh =
+                        movieId != null
+                          ? sceneKeyHex(movieId, col.id, cell.id)
+                          : ''
+                      const row = skh ? getSceneRow(skh) : undefined
                       return (
                         <div key={cell.id} className="scene-cell-wrap">
                           <div className="scene-cell-meta">Alt {rowIndex + 1}</div>
@@ -162,15 +189,12 @@ export function FanSceneBoard({ subheading }: Props) {
                               <SceneCellForkTooltip
                                 timeLabel={`Time ${colIndex + 1}`}
                                 altLabel={`Alt ${rowIndex + 1}`}
-                                fork={tooltipForkForPlayableCell(col, cell.id)}
-                                playableCount={playableVideoCount(col)}
+                                sceneKeyHex={skh}
                                 chainSynced={chainSynced}
                                 connected={connected}
                                 busy={busy}
-                                v0={v0}
-                                v1={v1}
-                                pos0={pos0}
-                                pos1={pos1}
+                                scene={row?.scene ?? null}
+                                position={row?.position ?? null}
                                 onUnstake={onUnstake}
                               >
                                 <div className="scene-thumb-ring">

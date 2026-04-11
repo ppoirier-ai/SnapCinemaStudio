@@ -1,23 +1,20 @@
 import type { CSSProperties } from 'react'
-import { decodePosition, decodeVersion } from '../stakeToCurate/client'
+import { decodeScene, decodeScenePosition } from '../stakeToCurate/client'
 import { lamportsToSol } from './format'
 
-type V = ReturnType<typeof decodeVersion>
-type P = ReturnType<typeof decodePosition>
+type S = ReturnType<typeof decodeScene>
+type P = ReturnType<typeof decodeScenePosition>
 
 export type SceneForkHoverPanelProps = {
   timeLabel: string
   altLabel: string
-  fork: 0 | 1 | null
-  playableCount: number
+  sceneKeyHex: string
   chainSynced: boolean
   connected: boolean
   busy: boolean
-  v0: V | null
-  v1: V | null
-  pos0: P | null
-  pos1: P | null
-  onUnstake: (versionIndex: 0 | 1) => void
+  scene: S | null
+  position: P | null
+  onUnstake: (sceneKeyHex: string) => void
   /** Optional inline styles on the panel root (in-page tooltips only). */
   rootStyle?: CSSProperties
   rootClassName?: string
@@ -38,69 +35,47 @@ function yourUpDownSol(pos: P | null): { up: string; down: string } {
 export function SceneForkHoverPanel({
   timeLabel,
   altLabel,
-  fork,
-  playableCount,
+  sceneKeyHex,
   chainSynced,
   connected,
   busy,
-  v0,
-  v1,
-  pos0,
-  pos1,
+  scene,
+  position,
   onUnstake,
   rootStyle,
   rootClassName = 'scene-cell-chain-tooltip',
 }: Props) {
   const baseDisabled = !connected || busy || !chainSynced
-
-  if (fork === null) {
-    return (
-      <div className={rootClassName} style={rootStyle} role="region">
-        <p className="scene-chain-tip-lead">
-          <strong>{timeLabel}</strong> · <strong>{altLabel}</strong>
-        </p>
-        <p className="muted scene-chain-tip-copy">
-          This clip is after the first two playables in this column (
-          <strong>{playableCount}</strong> with URLs), so it is not part of the fork
-          0 / fork 1 pair used for Watch and stake tooltips on the first two cells.
-        </p>
-      </div>
-    )
-  }
-
-  const vThis = fork === 0 ? v0 : v1
-  const posThis = fork === 0 ? pos0 : pos1
-  const { up: upSol, down: downSol } = yourUpDownSol(posThis)
-  const verBusy = baseDisabled || !vThis
+  const { up: upSol, down: downSol } = yourUpDownSol(position)
   const canUnstake =
-    posThis != null &&
-    posThis.isActive &&
-    posThis.amount > 0n
+    position != null && position.isActive && position.amount > 0n
 
   return (
     <div className={rootClassName} style={rootStyle} role="region">
       <p className="scene-chain-tip-lead">
         <strong>{timeLabel}</strong> · <strong>{altLabel}</strong>
       </p>
-      {vThis ? (
+      {scene ? (
         <>
           <dl className="scene-chain-dl">
-            <dt>Rank (this fork)</dt>
-            <dd>{vThis.rank.toString()}</dd>
-            <dt>Total active stake (this fork)</dt>
-            <dd>{lamportsToSol(vThis.activeStake)} SOL</dd>
+            <dt>Rank (this scene)</dt>
+            <dd>{scene.rank.toString()}</dd>
+            <dt>Total active stake (this scene)</dt>
+            <dd>{lamportsToSol(scene.activeStake)} SOL</dd>
             <dt>Your upstake</dt>
             <dd>{upSol} SOL</dd>
             <dt>Your downstake</dt>
             <dd>{downSol} SOL</dd>
+            <dt className="muted">Scene key</dt>
+            <dd className="muted scene-key-mono">{sceneKeyHex.slice(0, 16)}…</dd>
           </dl>
           {canUnstake ? (
             <div className="scene-chain-tip-actions">
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
-                disabled={verBusy}
-                onClick={() => void onUnstake(fork)}
+                disabled={baseDisabled}
+                onClick={() => void onUnstake(sceneKeyHex)}
               >
                 Unstake
               </button>
@@ -109,7 +84,9 @@ export function SceneForkHoverPanel({
         </>
       ) : (
         <p className="muted scene-chain-tip-copy">
-          Fork accounts not on-chain yet — platform admin runs Setup in Studio.
+          Scene not registered on-chain yet. Connect the <strong>slot authority</strong>{' '}
+          wallet, add or confirm the YouTube URL on this cell (Scene tab), then refresh —
+          that registers one <code>Scene</code> PDA per playable cell.
         </p>
       )}
     </div>

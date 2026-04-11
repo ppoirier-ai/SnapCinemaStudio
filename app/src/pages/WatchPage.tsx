@@ -10,15 +10,16 @@ import { FAN_REACTION_LAMPORTS } from '../demo/constants'
 import { lamportsToSol } from '../demo/format'
 import { IconFlag, IconThumbDown, IconThumbUp } from '../components/ReactionIcons'
 import { envYoutubeVideoId, youtubeEmbedSrc } from '../lib/youtubeEmbed'
-import { buildWatchPlaylist } from '../lib/watchPlaylist'
+import {
+  buildWatchPlaylist,
+  type WatchPlaylistClip,
+} from '../lib/watchPlaylist'
 import { youtubeThumbnailUrl } from '../lib/youtubeUrl'
 
 function posterForMovie(m: Movie): string | null {
   const id = getFirstYoutubeVideoIdFromMovie(m)
   return id ? youtubeThumbnailUrl(id) : null
 }
-
-type VersionRow = { rank: bigint } | null
 
 function formatSessionTimeLeft(expiresAtMs: number): string {
   const ms = Math.max(0, expiresAtMs - Date.now())
@@ -32,20 +33,18 @@ function formatSessionTimeLeft(expiresAtMs: number): string {
 
 function WatchShortPlayback({
   movie,
-  v0,
-  v1,
-  playback,
+  rankBySceneKeyHex,
   envVid,
   envEmbed,
   playerTitle,
+  onCurrentClipChange,
 }: {
   movie: Movie | null
-  v0: VersionRow
-  v1: VersionRow
-  playback: 0 | 1 | null
+  rankBySceneKeyHex: Record<string, bigint>
   envVid: string | null
   envEmbed: string | null
   playerTitle: string
+  onCurrentClipChange?: (clip: WatchPlaylistClip | null) => void
 }) {
   const [playlistKey, setPlaylistKey] = useState(0)
   const [clipIndex, setClipIndex] = useState(0)
@@ -53,33 +52,39 @@ function WatchShortPlayback({
   const clips = useMemo(() => {
     void playlistKey
     if (movie) {
-      const p = buildWatchPlaylist(movie, { v0, v1, playback })
+      const p = buildWatchPlaylist(movie, rankBySceneKeyHex)
       if (p.length > 0) return p
     }
-    if (envVid) return [{ videoId: envVid, columnIndex: -1 }]
+    if (envVid) return [{ videoId: envVid, columnIndex: -1, cellId: '', columnId: '', sceneKeyHex: '' }]
     return []
-  }, [movie, v0, v1, playback, playlistKey, envVid])
+  }, [movie, rankBySceneKeyHex, playlistKey, envVid])
 
   const clipsRef = useRef(clips)
   useEffect(() => {
     clipsRef.current = clips
   }, [clips])
 
+  const n = clips.length
+  const safeIndex = n === 0 ? 0 : Math.min(clipIndex, n - 1)
+  const currentClip = clips[safeIndex] ?? null
+
+  useEffect(() => {
+    onCurrentClipChange?.(currentClip)
+  }, [currentClip, onCurrentClipChange])
+
   const onClipEnded = useCallback(() => {
     setClipIndex((prev) => {
       const list = clipsRef.current
-      const n = list.length
-      if (n === 0) return 0
-      const cur = Math.min(prev, n - 1)
-      if (cur + 1 < n) return cur + 1
+      const len = list.length
+      if (len === 0) return 0
+      const cur = Math.min(prev, len - 1)
+      if (cur + 1 < len) return cur + 1
       queueMicrotask(() => setPlaylistKey((k) => k + 1))
       return 0
     })
   }, [])
 
-  const n = clips.length
-  const safeIndex = n === 0 ? 0 : Math.min(clipIndex, n - 1)
-  const currentVideoId = clips[safeIndex]?.videoId ?? null
+  const currentVideoId = currentClip?.videoId ?? null
 
   const fromMovieVid = movie
     ? getFirstYoutubeVideoIdFromMovie(movie)
@@ -126,12 +131,11 @@ export function WatchPage() {
   const { movies, watchMovieId, setWatchMovieId, getMovie } = useMovies()
   const {
     chainSynced,
-    playback,
+    rankBySceneKeyHex,
     busy,
     connected,
     signTransaction,
-    v0,
-    v1,
+    getSceneRow,
     onStakeUp,
     onStakeDown,
     setToast,
@@ -142,6 +146,8 @@ export function WatchPage() {
     topUpInstantSession,
     endInstantSession,
     ensureInstantSessionForWatch,
+    refreshOnChain,
+    slotInitialized,
   } = useDemoSlot()
 
   const playingMovie =
@@ -150,42 +156,55 @@ export function WatchPage() {
   const playbackKey =
     playingMovie?.id ?? (envVid ? `env:${envVid}` : 'none')
 
-  const slotMissingOnChain =
-    chainSynced && v0 === null && v1 === null
+  const [currentSceneKeyHex, setCurrentSceneKeyHex] = useState<string | null>(
+    null,
+  )
+
+  useEffect(() => {
+    if (!playingMovie || !connected) return
+    void refreshOnChain(playingMovie)
+  }, [playingMovie?.id, connected, refreshOnChain, playingMovie])
+
+  const currentRow = currentSceneKeyHex
+    ? getSceneRow(currentSceneKeyHex)
+    : undefined
+  const sceneReady = Boolean(currentRow?.scene)
+
+  const slotMissingOnChain = chainSynced && !slotInitialized
   const reactionsDisabled =
     !connected ||
     busy ||
-    playback === null ||
     !chainSynced ||
-    (!signTransaction && !instantStakingSessionActive)
+    (!signTransaction && !instantStakingSessionActive) ||
+    !currentSceneKeyHex ||
+    !sceneReady
 
   const onThumbUp = async () => {
-    if (playback === null) return
+    if (!currentSceneKeyHex) return
     if (!instantStakingSessionActive) {
       const ok = await ensureInstantSessionForWatch()
       if (!ok) return
     }
-    void onStakeUp(playback, FAN_REACTION_LAMPORTS)
+    void onStakeUp(currentSceneKeyHex, FAN_REACTION_LAMPORTS)
   }
 
   const onThumbDown = async () => {
-    if (playback === null) return
+    if (!currentSceneKeyHex) return
     if (!instantStakingSessionActive) {
       const ok = await ensureInstantSessionForWatch()
       if (!ok) return
     }
-    void onStakeDown(playback, FAN_REACTION_LAMPORTS)
+    void onStakeDown(currentSceneKeyHex, FAN_REACTION_LAMPORTS)
   }
 
-  /** Flag uses `stake_down` on the playing version (same primitive, strong negative signal). */
   const onFlag = async () => {
-    if (playback === null) return
+    if (!currentSceneKeyHex) return
     if (!instantStakingSessionActive) {
       const ok = await ensureInstantSessionForWatch()
       if (!ok) return
     }
-    void onStakeDown(playback, FAN_REACTION_LAMPORTS)
-    setToast('Flag sent: stake_down on this version (devnet).')
+    void onStakeDown(currentSceneKeyHex, FAN_REACTION_LAMPORTS)
+    setToast('Flag sent: stake_down on this scene (devnet).')
   }
 
   const playerTitle =
@@ -200,12 +219,15 @@ export function WatchPage() {
           <WatchShortPlayback
             key={playbackKey}
             movie={playingMovie}
-            v0={v0}
-            v1={v1}
-            playback={playback}
+            rankBySceneKeyHex={rankBySceneKeyHex}
             envVid={envVid}
             envEmbed={envEmbed}
             playerTitle={playerTitle}
+            onCurrentClipChange={(c) =>
+              setCurrentSceneKeyHex(
+                c?.sceneKeyHex && c.sceneKeyHex.length === 64 ? c.sceneKeyHex : null,
+              )
+            }
           />
         </div>
         {playingMovie && (
@@ -227,6 +249,19 @@ export function WatchPage() {
             <code>VITE_STAKE_SLOT_AUTHORITY</code> in <code>.env.example</code>).
           </p>
         )}
+        {connected &&
+          chainSynced &&
+          slotInitialized &&
+          playingMovie &&
+          currentSceneKeyHex &&
+          !sceneReady && (
+            <p className="muted watch-curate-hint" role="note">
+              This clip is not registered on-chain yet. The <strong>slot authority</strong>{' '}
+              wallet should open the <strong>Scene</strong> tab once so playable cells
+              call <code>register_scene</code> (or add the YouTube URL while connected as
+              authority).
+            </p>
+          )}
         {connected && chainSynced && (
           <div className="watch-instant-session" aria-label="Instant staking session">
             {instantStakingSessionActive && instantSessionMeta ? (
@@ -301,7 +336,7 @@ export function WatchPage() {
             className="watch-icon-btn watch-icon-btn-flag"
             disabled={reactionsDisabled}
             onClick={onFlag}
-            aria-label="Flag (stake down on playing version)"
+            aria-label="Flag (stake down on playing scene)"
           >
             <IconFlag className="watch-icon-svg" />
           </button>

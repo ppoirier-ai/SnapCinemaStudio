@@ -1,17 +1,20 @@
+import { useMemo } from 'react'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import { AccountPanelContent } from '../demo/AccountPanelContent'
 
 export function AccountPage() {
-  const {
-    publicKey,
-    connected,
-    busy,
-    pos0,
-    pos1,
-    refreshOnChain,
-    onClaim,
-    onClaimAll,
-  } = useDemoSlot()
+  const { publicKey, connected, busy, sceneRows, refreshOnChain } = useDemoSlot()
+
+  const positions = useMemo(
+    () =>
+      Object.entries(sceneRows)
+        .filter(([, row]) => row.position && row.position.amount > 0n)
+        .map(([sceneKeyHex, row]) => ({
+          sceneKeyHex,
+          position: row.position!,
+        })),
+    [sceneRows],
+  )
 
   return (
     <main className="studio account-route">
@@ -21,12 +24,8 @@ export function AccountPage() {
           publicKey={publicKey}
           connected={connected}
           busy={busy}
-          pos0={pos0}
-          pos1={pos1}
-          onRefresh={refreshOnChain}
-          onClaimV0={() => void onClaim(0)}
-          onClaimV1={() => void onClaim(1)}
-          onClaimAll={() => void onClaimAll()}
+          positions={positions}
+          onRefresh={() => void refreshOnChain(null)}
         />
       </section>
     </main>

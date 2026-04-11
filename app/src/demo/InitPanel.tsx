@@ -10,10 +10,11 @@ export function InitPanel({ demoSlotId, connected, busy, onSetup }: Props) {
     <section className="panel" aria-labelledby="init-heading">
       <h2 id="init-heading">1. Initialize</h2>
       <p className="muted">
-        Platform admin: creates slot {demoSlotId}, creator/platform = your wallet, two
-        versions (ranks 1_000_000 and 200_000). You must connect the{' '}
-        <strong>slot authority</strong> wallet (the pubkey in{' '}
-        <code>VITE_STAKE_SLOT_AUTHORITY</code> when set, otherwise your connected
+        Platform admin: creates slot {demoSlotId} with creator/platform = your wallet.
+        <strong> Scene accounts</strong> are created separately when the authority saves
+        playable YouTube URLs on the <strong>Scene</strong> tab (one <code>Scene</code>{' '}
+        PDA per cell). You must connect the <strong>slot authority</strong> wallet (the
+        pubkey in <code>VITE_STAKE_SLOT_AUTHORITY</code> when set, otherwise your connected
         wallet).
       </p>
       <p className="muted init-panel-cluster-note">
@@ -45,7 +46,7 @@ export function InitPanel({ demoSlotId, connected, busy, onSetup }: Props) {
         disabled={!connected || busy}
         onClick={() => void onSetup()}
       >
-        Setup demo (init slot + 2 versions)
+        Setup demo (init slot only)
       </button>
     </section>
   )

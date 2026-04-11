@@ -10,27 +10,31 @@ import {
   type ReactNode,
 } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { Keypair, PublicKey } from '@solana/web3.js'
+import { Keypair, PublicKey, type TransactionInstruction } from '@solana/web3.js'
+import { extractYoutubeVideoId } from '../lib/youtubeUrl'
+import type { Movie } from './SceneBoardContext'
 import {
   DEMO_SLOT_ID,
-  decodePosition,
-  decodeVersion,
-  fetchPositionsForVersion,
-  ixClaimCurator,
-  ixDepositRevenue,
+  decodeScene,
+  decodeScenePosition,
+  fetchScenePositionsForOwner,
   ixInitializeSlot,
-  ixRegisterVersion,
-  ixStakeDown,
-  ixStakeUp,
-  ixUnstake,
-  positionPda,
+  ixRegisterScene,
+  ixStakeSceneDown,
+  ixStakeSceneUp,
+  ixUnstakeScene,
+  scenePda,
+  scenePositionPda,
   resolveStakeSlotAuthority,
-  sampleVersionIndex,
   sendAndConfirm,
   sendAndConfirmWithKeypair,
   slotPda,
-  versionPda,
 } from '../stakeToCurate/client'
+import {
+  bytesToHex,
+  hexToSceneKeyBytes,
+  sceneKeyHex,
+} from '../stakeToCurate/sceneKey'
 import {
   clearInstantSessionStorage,
   createEphemeralKeypair,
@@ -44,58 +48,105 @@ import {
   tryRestoreInstantSession,
 } from '../session/instantStakingSession'
 
-type V = ReturnType<typeof decodeVersion>
-type P = ReturnType<typeof decodePosition>
+export type SceneChainRow = {
+  scene: ReturnType<typeof decodeScene> | null
+  position: ReturnType<typeof decodeScenePosition> | null
+}
+
+type SceneRows = Record<string, SceneChainRow>
 
 type DemoSlotValue = {
-  /** True after the latest `refreshOnChain` finished (success or failure). */
   chainSynced: boolean
-  /** On-chain slot authority PDA seed (env or connected wallet). */
   slotAuthority: PublicKey | null
   authority: ReturnType<typeof useWallet>['publicKey']
   publicKey: ReturnType<typeof useWallet>['publicKey']
   connected: boolean
   signTransaction: ReturnType<typeof useWallet>['signTransaction']
-  slotPk: ReturnType<typeof slotPda> | null
-  v0Pk: ReturnType<typeof versionPda> | null
-  v1Pk: ReturnType<typeof versionPda> | null
-  v0: V | null
-  v1: V | null
-  pos0: P | null
-  pos1: P | null
-  playback: 0 | 1 | null
+  slotPk: PublicKey | null
+  /** True when the slot PDA account exists (admin ran setup). */
+  slotInitialized: boolean
+  /** Per-scene chain rows keyed by `sceneKeyHex` (64 hex chars). */
+  sceneRows: SceneRows
+  getSceneRow: (sceneKeyHex: string) => SceneChainRow | undefined
+  /** Ranks for `buildWatchPlaylist` (on-chain rank when registered). */
+  rankBySceneKeyHex: Record<string, bigint>
   log: string[]
   busy: boolean
   toast: string | null
   setToast: (t: string | null) => void
   append: (m: string) => void
-  refreshOnChain: () => Promise<void>
+  /** Pass the current movie to refresh playable scene accounts; omit for slot + positions only. */
+  refreshOnChain: (movie?: Movie | null) => Promise<void>
+  /** Slot authority only: `register_scene` for each playable cell missing a Scene account. */
+  ensureScenesRegisteredForMovie: (movie: Movie) => Promise<void>
   run: (label: string, fn: () => Promise<void>) => Promise<void>
   onSetup: () => void
-  onStakeUp: (versionIndex: 0 | 1, lamports: bigint) => void
-  onStakeDown: (versionIndex: 0 | 1, lamports: bigint) => void
-  onUnstake: (versionIndex: 0 | 1) => void
-  onDeposit: (versionIndex: 0 | 1, lamports: bigint) => void
-  onClaim: (versionIndex: 0 | 1) => void
+  onStakeUp: (sceneKeyHex: string, lamports: bigint) => void
+  onStakeDown: (sceneKeyHex: string, lamports: bigint) => void
+  onUnstake: (sceneKeyHex: string) => void
+  /** MVP: curator revenue distribution is deferred for per-scene accounts. */
+  onDeposit: (_sceneKeyHex: string, _lamports: bigint) => void
+  onClaim: (_sceneKeyHex: string) => void
   onClaimAll: () => void
-  onRollPlayback: () => void
-  /** Ephemeral session: funded session wallet + expiry; null if none. */
   instantSessionMeta: InstantSessionMeta | null
-  /** Live SOL balance on the session wallet (lamports), when a session exists. */
   instantSessionBalanceLamports: bigint | null
-  /** Session wallet exists and wall-clock is before `expiresAtMs`. */
   instantStakingSessionActive: boolean
   enableInstantStaking: () => void
   topUpInstantSession: () => void
   endInstantSession: () => void
-  /**
-   * Creates/restores session + one Phantom transfer (up to 1 SOL) for Watch auto-flow.
-   * Returns false if the user cancels or an error occurs (no `run()` wrapper).
-   */
   ensureInstantSessionForWatch: () => Promise<boolean>
 }
 
 const DemoSlotContext = createContext<DemoSlotValue | null>(null)
+
+function collectPlayableSceneHexes(movie: Movie): string[] {
+  const out: string[] = []
+  for (const col of movie.columns) {
+    for (const cell of col.cells) {
+      if (!extractYoutubeVideoId(cell.youtubeUrl ?? '')) continue
+      out.push(sceneKeyHex(movie.id, col.id, cell.id))
+    }
+  }
+  return out
+}
+
+async function loadSceneRows(
+  connection: ReturnType<typeof useConnection>['connection'],
+  slotPk: PublicKey,
+  positionOwner: PublicKey,
+  movie: Movie | null | undefined,
+): Promise<SceneRows> {
+  const out: SceneRows = {}
+
+  const posAccounts = await fetchScenePositionsForOwner(connection, positionOwner)
+  for (const { data } of posAccounts) {
+    const pos = decodeScenePosition(data)
+    const sAi = await connection.getAccountInfo(pos.scene)
+    const scene = sAi?.data ? decodeScene(Buffer.from(sAi.data)) : null
+    if (!scene) continue
+    const hex = bytesToHex(scene.sceneKey)
+    out[hex] = { scene, position: pos }
+  }
+
+  if (movie) {
+    for (const hex of collectPlayableSceneHexes(movie)) {
+      if (out[hex]?.scene) continue
+      const sk = hexToSceneKeyBytes(hex)
+      const scenePk = scenePda(slotPk, sk)
+      const posPk = scenePositionPda(scenePk, positionOwner)
+      const [sAi, pAi] = await Promise.all([
+        connection.getAccountInfo(scenePk),
+        connection.getAccountInfo(posPk),
+      ])
+      out[hex] = {
+        scene: sAi?.data ? decodeScene(Buffer.from(sAi.data)) : null,
+        position: pAi?.data ? decodeScenePosition(Buffer.from(pAi.data)) : null,
+      }
+    }
+  }
+
+  return out
+}
 
 export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const { connection } = useConnection()
@@ -105,13 +156,9 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const [log, setLog] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [v0, setV0] = useState<V | null>(null)
-  const [v1, setV1] = useState<V | null>(null)
-  const [pos0, setPos0] = useState<P | null>(null)
-  const [pos1, setPos1] = useState<P | null>(null)
-  const [playback, setPlayback] = useState<0 | 1 | null>(null)
+  const [sceneRows, setSceneRows] = useState<SceneRows>({})
+  const [slotInitialized, setSlotInitialized] = useState(false)
   const [chainSynced, setChainSynced] = useState(false)
-  const sampledBothRef = useRef(false)
   const runInFlightRef = useRef(false)
   const instantKeypairRef = useRef<Keypair | null>(null)
   const instantSessionMetaRef = useRef<InstantSessionMeta | null>(null)
@@ -121,7 +168,6 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     useState<InstantSessionMeta | null>(null)
   const [instantSessionBalanceLamports, setInstantSessionBalanceLamports] =
     useState<bigint | null>(null)
-  /** Bumps once per second while a session exists so countdown / active flag stay fresh. */
   const [, setSessionUiTick] = useState(0)
 
   const append = useCallback((m: string) => {
@@ -140,82 +186,61 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       slotAuthorityPk ? slotPda(slotAuthorityPk, DEMO_SLOT_ID) : null,
     [slotAuthorityPk],
   )
-  const v0Pk = useMemo(
-    () => (slotPk ? versionPda(slotPk, 0) : null),
-    [slotPk],
-  )
-  const v1Pk = useMemo(
-    () => (slotPk ? versionPda(slotPk, 1) : null),
-    [slotPk],
-  )
 
   useEffect(() => {
     instantSessionMetaRef.current = instantSessionMeta
   }, [instantSessionMeta])
 
-  const refreshOnChain = useCallback(async () => {
-    if (!slotAuthorityPk || !v0Pk || !v1Pk || !publicKey) {
-      setChainSynced(true)
-      return
-    }
-    const meta = instantSessionMetaRef.current
-    const positionOwner =
-      meta?.ephemeralPk != null
-        ? new PublicKey(meta.ephemeralPk)
-        : publicKey
-    try {
-      const [a0, a1] = await Promise.all([
-        connection.getAccountInfo(v0Pk),
-        connection.getAccountInfo(v1Pk),
-      ])
-      if (a0?.data) setV0(decodeVersion(Buffer.from(a0.data)))
-      else setV0(null)
-      if (a1?.data) setV1(decodeVersion(Buffer.from(a1.data)))
-      else setV1(null)
-      const [p0, p1] = await Promise.all([
-        connection.getAccountInfo(positionPda(v0Pk, positionOwner)),
-        connection.getAccountInfo(positionPda(v1Pk, positionOwner)),
-      ])
-      if (p0?.data) setPos0(decodePosition(Buffer.from(p0.data)))
-      else setPos0(null)
-      if (p1?.data) setPos1(decodePosition(Buffer.from(p1.data)))
-      else setPos1(null)
-      if (meta?.ephemeralPk != null) {
-        const b = await connection.getBalance(new PublicKey(meta.ephemeralPk))
-        setInstantSessionBalanceLamports(BigInt(b))
-      } else {
-        setInstantSessionBalanceLamports(null)
+  const refreshOnChain = useCallback(
+    async (movie?: Movie | null) => {
+      if (!slotAuthorityPk || !slotPk || !publicKey) {
+        setChainSynced(true)
+        return
       }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setChainSynced(true)
-    }
-  }, [connection, publicKey, slotAuthorityPk, v0Pk, v1Pk])
+      const meta = instantSessionMetaRef.current
+      const positionOwner =
+        meta?.ephemeralPk != null
+          ? new PublicKey(meta.ephemeralPk)
+          : publicKey
+      try {
+        const slotAi = await connection.getAccountInfo(slotPk)
+        setSlotInitialized(Boolean(slotAi?.data))
 
-  useEffect(() => {
-    if (!v0 && !v1) {
-      setPlayback(null)
-      sampledBothRef.current = false
-      return
-    }
-    if (v0 && !v1) {
-      setPlayback(0)
-      sampledBothRef.current = false
-      return
-    }
-    if (!v0 && v1) {
-      setPlayback(1)
-      sampledBothRef.current = false
-      return
-    }
-    if (v0 && v1) {
-      if (!sampledBothRef.current) {
-        setPlayback(sampleVersionIndex([v0.rank, v1.rank]))
-        sampledBothRef.current = true
+        const rows = await loadSceneRows(
+          connection,
+          slotPk,
+          positionOwner,
+          movie ?? undefined,
+        )
+        setSceneRows(rows)
+
+        if (meta?.ephemeralPk != null) {
+          const b = await connection.getBalance(new PublicKey(meta.ephemeralPk))
+          setInstantSessionBalanceLamports(BigInt(b))
+        } else {
+          setInstantSessionBalanceLamports(null)
+        }
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setChainSynced(true)
       }
+    },
+    [connection, publicKey, slotAuthorityPk, slotPk],
+  )
+
+  const rankBySceneKeyHex = useMemo(() => {
+    const m: Record<string, bigint> = {}
+    for (const [hex, row] of Object.entries(sceneRows)) {
+      if (row.scene) m[hex] = row.scene.rank
     }
-  }, [v0, v1])
+    return m
+  }, [sceneRows])
+
+  const getSceneRow = useCallback(
+    (sceneKeyHex: string) => sceneRows[sceneKeyHex],
+    [sceneRows],
+  )
 
   useEffect(() => {
     if (!toast) return
@@ -250,7 +275,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       return
     }
     setChainSynced(false)
-    void refreshOnChain()
+    void refreshOnChain(null)
   }, [connected, publicKey, instantSessionMeta, refreshOnChain])
 
   const instantStakingSessionActive = Boolean(
@@ -279,7 +304,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       const kp = instantKeypairRef.current
       const custodian = publicKey
       try {
-        if (!kp || !custodian || !slotAuthorityPk || !v0Pk || !v1Pk) {
+        if (!kp || !custodian || !slotAuthorityPk || !slotPk) {
           clearInstantSessionStorage()
           instantKeypairRef.current = null
           instantSessionMetaRef.current = null
@@ -288,31 +313,17 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
           return
         }
         append(`Closing instant session (${reason})…`)
-        for (const vi of [0, 1] as const) {
-          const ver = vi === 0 ? v0Pk : v1Pk
-          const acc = await connection.getAccountInfo(
-            positionPda(ver, kp.publicKey),
-          )
-          if (!acc?.data) continue
-          const pos = decodePosition(Buffer.from(acc.data))
-          if (pos.amount > 0n) {
-            await sendAndConfirmWithKeypair(connection, kp, [
-              ixUnstake(kp.publicKey, slotAuthorityPk, DEMO_SLOT_ID, vi),
-            ])
-          }
-        }
-        for (const vi of [0, 1] as const) {
-          const ver = vi === 0 ? v0Pk : v1Pk
-          const acc = await connection.getAccountInfo(
-            positionPda(ver, kp.publicKey),
-          )
-          if (!acc?.data) continue
-          const pos = decodePosition(Buffer.from(acc.data))
-          if (pos.accruedRewards > 0n) {
-            await sendAndConfirmWithKeypair(connection, kp, [
-              ixClaimCurator(kp.publicKey, slotAuthorityPk, DEMO_SLOT_ID, vi),
-            ])
-          }
+        const owned = await fetchScenePositionsForOwner(connection, kp.publicKey)
+        for (const { data } of owned) {
+          const pos = decodeScenePosition(data)
+          if (pos.amount <= 0n) continue
+          const sAi = await connection.getAccountInfo(pos.scene)
+          const scene = sAi?.data ? decodeScene(Buffer.from(sAi.data)) : null
+          const sk = scene?.sceneKey
+          if (!sk || sk.length !== 32) continue
+          await sendAndConfirmWithKeypair(connection, kp, [
+            ixUnstakeScene(kp.publicKey, slotAuthorityPk, DEMO_SLOT_ID, sk),
+          ])
         }
         const bal = await connection.getBalance(kp.publicKey)
         const feeBuf = 10_000
@@ -339,18 +350,10 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         setInstantSessionMeta(null)
         setInstantSessionBalanceLamports(null)
         finalizeInFlightRef.current = false
-        await refreshOnChain()
+        await refreshOnChain(null)
       }
     },
-    [
-      append,
-      connection,
-      publicKey,
-      refreshOnChain,
-      slotAuthorityPk,
-      v0Pk,
-      v1Pk,
-    ],
+    [append, connection, publicKey, refreshOnChain, slotAuthorityPk, slotPk],
   )
 
   useEffect(() => {
@@ -375,7 +378,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     try {
       await fn()
       append(`OK: ${label}`)
-      await refreshOnChain()
+      await refreshOnChain(null)
     } catch (e) {
       console.error(e)
       append(`ERR: ${label} — ${e instanceof Error ? e.message : String(e)}`)
@@ -385,8 +388,47 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const ensureScenesRegisteredForMovie = useCallback(
+    async (movie: Movie) => {
+      if (!publicKey || !signTransaction || !slotAuthorityPk || !slotPk) return
+      if (!publicKey.equals(slotAuthorityPk)) return
+      const ixs = []
+      for (const col of movie.columns) {
+        for (const cell of col.cells) {
+          if (!extractYoutubeVideoId(cell.youtubeUrl ?? '')) continue
+          const sk = sceneKeyHex(movie.id, col.id, cell.id)
+          const bytes = hexToSceneKeyBytes(sk)
+          const pk = scenePda(slotPk, bytes)
+          const ai = await connection.getAccountInfo(pk)
+          if (!ai) {
+            ixs.push(
+              ixRegisterScene(publicKey, DEMO_SLOT_ID, bytes, 1_000_000n),
+            )
+          }
+        }
+      }
+      if (ixs.length === 0) return
+      const CHUNK = 6
+      for (let i = 0; i < ixs.length; i += CHUNK) {
+        const slice = ixs.slice(i, i + CHUNK)
+        await sendAndConfirm(connection, { publicKey, signTransaction }, slice)
+      }
+      append(`Registered ${ixs.length} scene(s) on-chain`)
+      await refreshOnChain(movie)
+    },
+    [
+      append,
+      connection,
+      publicKey,
+      refreshOnChain,
+      signTransaction,
+      slotAuthorityPk,
+      slotPk,
+    ],
+  )
+
   const onSetup = () =>
-    run('setup slot + versions', async () => {
+    run('setup slot', async () => {
       if (!publicKey || !signTransaction)
         throw new Error('Connect wallet first')
       const slotAuth = resolveStakeSlotAuthority(publicKey)
@@ -401,15 +443,25 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         { publicKey, signTransaction },
         [
           ixInitializeSlot(slotAuth, slotAuth, slotAuth, DEMO_SLOT_ID),
-          ixRegisterVersion(slotAuth, DEMO_SLOT_ID, 0, 1_000_000n),
-          ixRegisterVersion(slotAuth, DEMO_SLOT_ID, 1, 200_000n),
         ],
       )
     })
 
-  const onStakeUp = (versionIndex: 0 | 1, lamports: bigint) =>
-    run(`stake_up v${versionIndex}`, async () => {
+  const stakeScene = (
+    label: string,
+    discIx: (
+      o: PublicKey,
+      auth: PublicKey,
+      sid: number,
+      sk: Uint8Array,
+      lam: bigint,
+    ) => TransactionInstruction,
+    sceneKeyHexArg: string,
+    lamports: bigint,
+  ) =>
+    run(label, async () => {
       if (!slotAuthorityPk) throw new Error('Missing slot authority')
+      const sk = hexToSceneKeyBytes(sceneKeyHexArg)
       const meta = instantSessionMetaRef.current
       if (meta && Date.now() >= meta.expiresAtMs && instantKeypairRef.current) {
         await finalizeInstantSessionCore('stake_after_expired_session')
@@ -427,13 +479,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         }
         try {
           await sendAndConfirmWithKeypair(connection, kp, [
-            ixStakeUp(
-              owner,
-              slotAuthorityPk,
-              DEMO_SLOT_ID,
-              versionIndex,
-              lamports,
-            ),
+            discIx(owner, slotAuthorityPk, DEMO_SLOT_ID, sk, lamports),
           ])
         } catch (e) {
           const t = e instanceof Error ? e.message : String(e)
@@ -443,7 +489,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
             t.includes('0x177d')
           ) {
             setToast(
-              'This session already staked the opposite direction on this version.',
+              'This session already staked the opposite direction on this scene.',
             )
           }
           throw e
@@ -456,84 +502,35 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         connection,
         { publicKey, signTransaction },
         [
-          ixStakeUp(
-            publicKey,
-            slotAuthorityPk,
-            DEMO_SLOT_ID,
-            versionIndex,
-            lamports,
-          ),
+          discIx(publicKey, slotAuthorityPk, DEMO_SLOT_ID, sk, lamports),
         ],
       )
     })
 
-  const onStakeDown = (versionIndex: 0 | 1, lamports: bigint) =>
-    run(`stake_down v${versionIndex}`, async () => {
-      if (!slotAuthorityPk) throw new Error('Missing slot authority')
-      const meta = instantSessionMetaRef.current
-      if (meta && Date.now() >= meta.expiresAtMs && instantKeypairRef.current) {
-        await finalizeInstantSessionCore('stake_after_expired_session')
-      }
-      const kp = instantKeypairRef.current
-      if (isInstantSessionUsable() && kp) {
-        const owner = kp.publicKey
-        const bal = BigInt(await connection.getBalance(owner))
-        const needed = lamports + STAKE_RESERVE_LAMPORTS
-        if (bal < needed) {
-          setToast(
-            'Not enough SOL left in this session. Use Top Up Session (up to 1 SOL per top-up).',
-          )
-          throw new Error('Insufficient session balance')
-        }
-        try {
-          await sendAndConfirmWithKeypair(connection, kp, [
-            ixStakeDown(
-              owner,
-              slotAuthorityPk,
-              DEMO_SLOT_ID,
-              versionIndex,
-              lamports,
-            ),
-          ])
-        } catch (e) {
-          const t = e instanceof Error ? e.message : String(e)
-          if (
-            t.includes('SideMismatch') ||
-            t.includes('side mismatch') ||
-            t.includes('0x177d')
-          ) {
-            setToast(
-              'This session already staked the opposite direction on this version.',
-            )
-          }
-          throw e
-        }
-        return
-      }
-      if (!publicKey || !signTransaction)
-        throw new Error('Connect wallet first')
-      await sendAndConfirm(
-        connection,
-        { publicKey, signTransaction },
-        [
-          ixStakeDown(
-            publicKey,
-            slotAuthorityPk,
-            DEMO_SLOT_ID,
-            versionIndex,
-            lamports,
-          ),
-        ],
-      )
-    })
+  const onStakeUp = (sceneKeyHexArg: string, lamports: bigint) =>
+    stakeScene(
+      `stake_scene_up ${sceneKeyHexArg.slice(0, 10)}…`,
+      ixStakeSceneUp,
+      sceneKeyHexArg,
+      lamports,
+    )
 
-  const onUnstake = (versionIndex: 0 | 1) =>
-    run(`unstake v${versionIndex}`, async () => {
+  const onStakeDown = (sceneKeyHexArg: string, lamports: bigint) =>
+    stakeScene(
+      `stake_scene_down ${sceneKeyHexArg.slice(0, 10)}…`,
+      ixStakeSceneDown,
+      sceneKeyHexArg,
+      lamports,
+    )
+
+  const onUnstake = (sceneKeyHexArg: string) =>
+    run(`unstake_scene ${sceneKeyHexArg.slice(0, 10)}…`, async () => {
       if (!slotAuthorityPk) throw new Error('Missing slot authority')
+      const sk = hexToSceneKeyBytes(sceneKeyHexArg)
       const kp = instantKeypairRef.current
       if (isInstantSessionUsable() && kp) {
         await sendAndConfirmWithKeypair(connection, kp, [
-          ixUnstake(kp.publicKey, slotAuthorityPk, DEMO_SLOT_ID, versionIndex),
+          ixUnstakeScene(kp.publicKey, slotAuthorityPk, DEMO_SLOT_ID, sk),
         ])
         return
       }
@@ -543,149 +540,32 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         connection,
         { publicKey, signTransaction },
         [
-          ixUnstake(
+          ixUnstakeScene(
             publicKey,
             slotAuthorityPk,
             DEMO_SLOT_ID,
-            versionIndex,
+            sk,
           ),
         ],
       )
     })
 
-  const onDeposit = (versionIndex: 0 | 1, lamports: bigint) =>
-    run(`deposit_revenue v${versionIndex}`, async () => {
-      if (!publicKey || !signTransaction || !slotAuthorityPk)
-        throw new Error('Connect wallet first')
-      const slot = slotPda(slotAuthorityPk, DEMO_SLOT_ID)
-      const ver = versionPda(slot, versionIndex)
-      const positions = await fetchPositionsForVersion(connection, ver)
-      if (positions.length === 0)
-        throw new Error('No positions for this version — stake first')
-      await sendAndConfirm(
-        connection,
-        { publicKey, signTransaction },
-        [
-          ixDepositRevenue(
-            publicKey,
-            slotAuthorityPk,
-            DEMO_SLOT_ID,
-            versionIndex,
-            lamports,
-            slotAuthorityPk,
-            slotAuthorityPk,
-            positions.map((p) => p.pubkey),
-          ),
-        ],
-      )
-    })
+  const onDeposit = (_sceneKeyHex: string, _lamports: bigint) => {
+    append(
+      'Note: deposit_revenue is deferred for per-scene StakeToCurate (MVP — no curator pool yet).',
+    )
+  }
 
-  const onClaim = (versionIndex: 0 | 1) =>
-    run(`claim_curator v${versionIndex}`, async () => {
-      if (!slotAuthorityPk) throw new Error('Missing slot authority')
-      const kp = instantKeypairRef.current
-      if (isInstantSessionUsable() && kp) {
-        await sendAndConfirmWithKeypair(connection, kp, [
-          ixClaimCurator(
-            kp.publicKey,
-            slotAuthorityPk,
-            DEMO_SLOT_ID,
-            versionIndex,
-          ),
-        ])
-        return
-      }
-      if (!publicKey || !signTransaction)
-        throw new Error('Connect wallet first')
-      await sendAndConfirm(
-        connection,
-        { publicKey, signTransaction },
-        [
-          ixClaimCurator(
-            publicKey,
-            slotAuthorityPk,
-            DEMO_SLOT_ID,
-            versionIndex,
-          ),
-        ],
-      )
-    })
+  const onClaim = (_sceneKeyHex: string) => {
+    append(
+      'Note: claim_curator is deferred for per-scene StakeToCurate (MVP — no curator pool yet).',
+    )
+  }
 
-  const onClaimAll = () =>
-    run('claim all curator rewards', async () => {
-      if (!slotAuthorityPk) throw new Error('Missing slot authority')
-      const kp = instantKeypairRef.current
-      if (isInstantSessionUsable() && kp) {
-        const has0 = pos0 && pos0.accruedRewards > 0n
-        const has1 = pos1 && pos1.accruedRewards > 0n
-        if (!has0 && !has1)
-          throw new Error('No accrued rewards to claim')
-        if (has0) {
-          await sendAndConfirmWithKeypair(connection, kp, [
-            ixClaimCurator(
-              kp.publicKey,
-              slotAuthorityPk,
-              DEMO_SLOT_ID,
-              0,
-            ),
-          ])
-        }
-        if (has1) {
-          await sendAndConfirmWithKeypair(connection, kp, [
-            ixClaimCurator(
-              kp.publicKey,
-              slotAuthorityPk,
-              DEMO_SLOT_ID,
-              1,
-            ),
-          ])
-        }
-        return
-      }
-      if (!publicKey || !signTransaction)
-        throw new Error('Connect wallet first')
-      const has0 = pos0 && pos0.accruedRewards > 0n
-      const has1 = pos1 && pos1.accruedRewards > 0n
-      if (!has0 && !has1)
-        throw new Error('No accrued rewards to claim')
-      if (has0) {
-        await sendAndConfirm(
-          connection,
-          { publicKey, signTransaction },
-          [
-            ixClaimCurator(
-              publicKey,
-              slotAuthorityPk,
-              DEMO_SLOT_ID,
-              0,
-            ),
-          ],
-        )
-      }
-      if (has1) {
-        await sendAndConfirm(
-          connection,
-          { publicKey, signTransaction },
-          [
-            ixClaimCurator(
-              publicKey,
-              slotAuthorityPk,
-              DEMO_SLOT_ID,
-              1,
-            ),
-          ],
-        )
-      }
-    })
-
-  const onRollPlayback = () => {
-    if (!v0 || !v1) {
-      append('Roll playback: need both versions on-chain')
-      return
-    }
-    const i = sampleVersionIndex([v0.rank, v1.rank])
-    setPlayback(i)
-    append(`Playback sampled version ${i} (ranks ${v0.rank} / ${v1.rank})`)
+  const onClaimAll = () => {
+    append(
+      'Note: claim_curator is deferred for per-scene StakeToCurate (MVP — no curator pool yet).',
+    )
   }
 
   const enableInstantStaking = () => {
@@ -791,7 +671,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
           ),
         ],
       )
-      await refreshOnChain()
+      await refreshOnChain(null)
       append('OK: instant staking session ready (watch)')
       return true
     } catch (e) {
@@ -828,19 +708,17 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     connected,
     signTransaction,
     slotPk,
-    v0Pk,
-    v1Pk,
-    v0,
-    v1,
-    pos0,
-    pos1,
-    playback,
+    slotInitialized,
+    sceneRows,
+    getSceneRow,
+    rankBySceneKeyHex,
     log,
     busy,
     toast,
     setToast,
     append,
     refreshOnChain,
+    ensureScenesRegisteredForMovie,
     run,
     onSetup,
     onStakeUp,
@@ -849,7 +727,6 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     onDeposit,
     onClaim,
     onClaimAll,
-    onRollPlayback,
     instantSessionMeta,
     instantSessionBalanceLamports,
     instantStakingSessionActive,
@@ -864,8 +741,6 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** Paired hook for {@link DemoSlotProvider}; must live in the same module as the provider. */
-// eslint-disable-next-line react-refresh/only-export-components -- intentional context pattern
 export function useDemoSlot() {
   const ctx = useContext(DemoSlotContext)
   if (!ctx)

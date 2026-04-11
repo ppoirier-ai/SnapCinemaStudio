@@ -12,18 +12,17 @@ import {
 
 export const PROGRAM_ID = new PublicKey(
   import.meta.env.VITE_STAKE_TO_CURATE_PROGRAM_ID ??
-    '4azLw8hCLoPiED81CNGXx5tthAsJUxm64P6kEnbg74ye',
+    'UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su',
 )
 
-/** Anchor `sha256("global:<name>")[0..8]` */
+/** Anchor `sha256("global:<name>")[0..8]` (from IDL after `anchor build`). */
 const IX = {
   initialize_slot: Buffer.from('970d156baf7b30c6', 'hex'),
-  register_version: Buffer.from('5ec69a1d37feb234', 'hex'),
-  stake_up: Buffer.from('cfbf30d24caaba99', 'hex'),
-  stake_down: Buffer.from('fb9e6d08f1075d40', 'hex'),
-  unstake: Buffer.from('5a5f6b2acd7c32e1', 'hex'),
-  deposit_revenue: Buffer.from('e0d452643cf0dc1d', 'hex'),
-  claim_curator: Buffer.from('633abf6d4d634970', 'hex'),
+  register_scene: Buffer.from('abe29d5dd65a2c4a', 'hex'),
+  stake_scene_up: Buffer.from('37827a136859a9e8', 'hex'),
+  stake_scene_down: Buffer.from('9502916cbe1159c8', 'hex'),
+  unstake_scene: Buffer.from('956f624ea339c5eb', 'hex'),
+  reset_scene_rank: Buffer.from('588f697e50fc4522', 'hex'),
 } as const
 
 export const DEFAULT_RPC =
@@ -33,7 +32,7 @@ export const DEMO_SLOT_ID = 0
 
 /**
  * Optional shared demo slot owner (base58). When set, all users read the same
- * slot/version PDAs and stake with `authorityForSlot` = this key; initialize
+ * slot/scene PDAs and stake with `authorityForSlot` = this key; initialize
  * once with the wallet that matches this pubkey. When unset, the connected
  * wallet is both authority and staker (solo dev).
  */
@@ -72,17 +71,18 @@ export function vaultPda(slot: PublicKey): PublicKey {
   return pda
 }
 
-export function versionPda(slot: PublicKey, versionIndex: number): PublicKey {
+export function scenePda(slot: PublicKey, sceneKey: Uint8Array): PublicKey {
+  if (sceneKey.length !== 32) throw new Error('scene_key must be 32 bytes')
   const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('version'), slot.toBuffer(), Buffer.from([versionIndex & 0xff])],
+    [Buffer.from('scene'), slot.toBuffer(), Buffer.from(sceneKey)],
     PROGRAM_ID,
   )
   return pda
 }
 
-export function positionPda(version: PublicKey, owner: PublicKey): PublicKey {
+export function scenePositionPda(scene: PublicKey, owner: PublicKey): PublicKey {
   const [pda] = PublicKey.findProgramAddressSync(
-    [Buffer.from('position'), version.toBuffer(), owner.toBuffer()],
+    [Buffer.from('position'), scene.toBuffer(), owner.toBuffer()],
     PROGRAM_ID,
   )
   return pda
@@ -106,26 +106,27 @@ function readU64LE(data: Buffer, offset: number): bigint {
   return v
 }
 
-/** 8-byte discriminator + account body */
-export function decodeVersion(data: Buffer) {
+export const SCENE_POSITION_DATA_LEN = 99
+
+/** 8-byte discriminator + `Scene` account body */
+export function decodeScene(data: Buffer) {
   let p = 8
   const slot = new PublicKey(data.subarray(p, p + 32))
   p += 32
-  const index = data.readUInt8(p)
-  p += 1
+  const sceneKey = new Uint8Array(data.subarray(p, p + 32))
+  p += 32
   const rank = readU64LE(data, p)
   p += 8
   const activeStake = readU64LE(data, p)
   p += 8
-  const curatorCarry = readU64LE(data, p)
-  p += 8
   const bump = data.readUInt8(p)
-  return { slot, index, rank, activeStake, curatorCarry, bump }
+  return { slot, sceneKey, rank, activeStake, bump }
 }
 
-export function decodePosition(data: Buffer) {
+/** 8-byte discriminator + `ScenePosition` account body */
+export function decodeScenePosition(data: Buffer) {
   let p = 8
-  const version = new PublicKey(data.subarray(p, p + 32))
+  const scene = new PublicKey(data.subarray(p, p + 32))
   p += 32
   const owner = new PublicKey(data.subarray(p, p + 32))
   p += 32
@@ -141,7 +142,7 @@ export function decodePosition(data: Buffer) {
   p += 8
   const bump = data.readUInt8(p)
   return {
-    version,
+    scene,
     owner,
     amount,
     isUp,
@@ -152,16 +153,14 @@ export function decodePosition(data: Buffer) {
   }
 }
 
-const POSITION_DATA_LEN = 99
-
-export async function fetchPositionsForVersion(
+export async function fetchScenePositionsForOwner(
   connection: Connection,
-  version: PublicKey,
+  owner: PublicKey,
 ): Promise<{ pubkey: PublicKey; data: Buffer }[]> {
   const res = await connection.getProgramAccounts(PROGRAM_ID, {
     filters: [
-      { dataSize: POSITION_DATA_LEN },
-      { memcmp: { offset: 8, bytes: version.toBase58() } },
+      { dataSize: SCENE_POSITION_DATA_LEN },
+      { memcmp: { offset: 40, bytes: owner.toBase58() } },
     ],
   })
   return res.map(({ pubkey, account }) => ({
@@ -193,17 +192,18 @@ export function ixInitializeSlot(
   })
 }
 
-export function ixRegisterVersion(
+export function ixRegisterScene(
   authority: PublicKey,
   slotId: number,
-  versionIndex: number,
+  sceneKey32: Uint8Array,
   initialRank: bigint,
 ): TransactionInstruction {
+  if (sceneKey32.length !== 32) throw new Error('scene_key must be 32 bytes')
   const slot = slotPda(authority, slotId)
-  const version = versionPda(slot, versionIndex)
+  const scene = scenePda(slot, sceneKey32)
   const data = Buffer.concat([
-    IX.register_version,
-    Buffer.from([versionIndex & 0xff]),
+    IX.register_scene,
+    Buffer.from(sceneKey32),
     u64le(initialRank),
   ])
   return new TransactionInstruction({
@@ -211,58 +211,80 @@ export function ixRegisterVersion(
     keys: [
       { pubkey: authority, isSigner: true, isWritable: true },
       { pubkey: slot, isSigner: false, isWritable: false },
-      { pubkey: version, isSigner: false, isWritable: true },
+      { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data,
   })
 }
 
-export function ixStakeUp(
+export function ixResetSceneRank(
+  authority: PublicKey,
+  slotId: number,
+  sceneKey32: Uint8Array,
+  newRank: bigint,
+): TransactionInstruction {
+  if (sceneKey32.length !== 32) throw new Error('scene_key must be 32 bytes')
+  const slot = slotPda(authority, slotId)
+  const scene = scenePda(slot, sceneKey32)
+  const data = Buffer.concat([IX.reset_scene_rank, u64le(newRank)])
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: slot, isSigner: false, isWritable: false },
+      { pubkey: scene, isSigner: false, isWritable: true },
+    ],
+    data,
+  })
+}
+
+export function ixStakeSceneUp(
   owner: PublicKey,
   authorityForSlot: PublicKey,
   slotId: number,
-  versionIndex: number,
+  sceneKey32: Uint8Array,
   amountLamports: bigint,
 ): TransactionInstruction {
-  return stakeIx(
+  return stakeSceneIx(
     owner,
     authorityForSlot,
     slotId,
-    versionIndex,
+    sceneKey32,
     amountLamports,
-    IX.stake_up,
+    IX.stake_scene_up,
   )
 }
 
-export function ixStakeDown(
+export function ixStakeSceneDown(
   owner: PublicKey,
   authorityForSlot: PublicKey,
   slotId: number,
-  versionIndex: number,
+  sceneKey32: Uint8Array,
   amountLamports: bigint,
 ): TransactionInstruction {
-  return stakeIx(
+  return stakeSceneIx(
     owner,
     authorityForSlot,
     slotId,
-    versionIndex,
+    sceneKey32,
     amountLamports,
-    IX.stake_down,
+    IX.stake_scene_down,
   )
 }
 
-function stakeIx(
+function stakeSceneIx(
   owner: PublicKey,
   authorityForSlot: PublicKey,
   slotId: number,
-  versionIndex: number,
+  sceneKey32: Uint8Array,
   amountLamports: bigint,
   disc: Buffer,
 ): TransactionInstruction {
+  if (sceneKey32.length !== 32) throw new Error('scene_key must be 32 bytes')
   const slot = slotPda(authorityForSlot, slotId)
-  const version = versionPda(slot, versionIndex)
-  const position = positionPda(version, owner)
+  const scene = scenePda(slot, sceneKey32)
+  const position = scenePositionPda(scene, owner)
   const vault = vaultPda(slot)
   const data = Buffer.concat([disc, u64le(amountLamports)])
   return new TransactionInstruction({
@@ -270,7 +292,7 @@ function stakeIx(
     keys: [
       { pubkey: owner, isSigner: true, isWritable: true },
       { pubkey: slot, isSigner: false, isWritable: false },
-      { pubkey: version, isSigner: false, isWritable: true },
+      { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vault, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
@@ -279,88 +301,27 @@ function stakeIx(
   })
 }
 
-export function ixUnstake(
+export function ixUnstakeScene(
   owner: PublicKey,
   authorityForSlot: PublicKey,
   slotId: number,
-  versionIndex: number,
+  sceneKey32: Uint8Array,
 ): TransactionInstruction {
+  if (sceneKey32.length !== 32) throw new Error('scene_key must be 32 bytes')
   const slot = slotPda(authorityForSlot, slotId)
-  const version = versionPda(slot, versionIndex)
-  const position = positionPda(version, owner)
+  const scene = scenePda(slot, sceneKey32)
+  const position = scenePositionPda(scene, owner)
   const vault = vaultPda(slot)
   return new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
       { pubkey: owner, isSigner: true, isWritable: true },
       { pubkey: slot, isSigner: false, isWritable: false },
-      { pubkey: version, isSigner: false, isWritable: true },
+      { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vault, isSigner: false, isWritable: true },
     ],
-    data: IX.unstake,
-  })
-}
-
-export function ixDepositRevenue(
-  payer: PublicKey,
-  authorityForSlot: PublicKey,
-  slotId: number,
-  versionIndex: number,
-  amountLamports: bigint,
-  creator: PublicKey,
-  platform: PublicKey,
-  positionAccounts: PublicKey[],
-): TransactionInstruction {
-  const slot = slotPda(authorityForSlot, slotId)
-  const version = versionPda(slot, versionIndex)
-  const vault = vaultPda(slot)
-  const data = Buffer.concat([IX.deposit_revenue, u64le(amountLamports)])
-  const keys = [
-    { pubkey: payer, isSigner: true, isWritable: true },
-    { pubkey: version, isSigner: false, isWritable: true },
-    { pubkey: slot, isSigner: false, isWritable: false },
-    { pubkey: vault, isSigner: false, isWritable: true },
-    { pubkey: creator, isSigner: false, isWritable: true },
-    { pubkey: platform, isSigner: false, isWritable: true },
-    {
-      pubkey: SystemProgram.programId,
-      isSigner: false,
-      isWritable: false,
-    },
-    ...positionAccounts.map((pubkey) => ({
-      pubkey,
-      isSigner: false,
-      isWritable: true,
-    })),
-  ]
-  return new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys,
-    data,
-  })
-}
-
-export function ixClaimCurator(
-  owner: PublicKey,
-  authorityForSlot: PublicKey,
-  slotId: number,
-  versionIndex: number,
-): TransactionInstruction {
-  const slot = slotPda(authorityForSlot, slotId)
-  const version = versionPda(slot, versionIndex)
-  const position = positionPda(version, owner)
-  const vault = vaultPda(slot)
-  return new TransactionInstruction({
-    programId: PROGRAM_ID,
-    keys: [
-      { pubkey: owner, isSigner: true, isWritable: true },
-      { pubkey: slot, isSigner: false, isWritable: false },
-      { pubkey: version, isSigner: false, isWritable: true },
-      { pubkey: position, isSigner: false, isWritable: true },
-      { pubkey: vault, isSigner: false, isWritable: true },
-    ],
-    data: IX.claim_curator,
+    data: IX.unstake_scene,
   })
 }
 
@@ -464,29 +425,81 @@ export async function sendAndConfirmWithKeypair(
   }
 }
 
+/** Result of one weighted index draw (for debugging / console traces). */
+export type WeightedPickTrace = {
+  index: number
+  /** Per-option weights after clamping negatives to 0. */
+  weights: bigint[]
+  weightSum: bigint
+  /**
+   * Uniform integer in [0, weightSum) used for the weighted pick; `null` if we used
+   * the zero-sum fallback (uniform random among indices).
+   */
+  drawU: bigint | null
+  usedUniformFallback: boolean
+}
+
 /**
  * Weighted index: P(i) ∝ max(rank_i, 0). Same bucket model as on-chain StakeToCurate.
  * Falls back to uniform if all weights are zero.
  */
-export function sampleWeightedIndex(ranks: bigint[]): number {
+export function sampleWeightedIndexWithTrace(ranks: bigint[]): WeightedPickTrace {
   const n = ranks.length
-  if (n === 0) return 0
-  if (n === 1) return 0
-  let sum = 0n
-  for (const r of ranks) sum += r > 0n ? r : 0n
-  if (sum === 0n) return Math.floor(Math.random() * n)
-  const u =
-    BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) % sum
+  const weights = ranks.map((r) => (r > 0n ? r : 0n))
+  if (n === 0) {
+    return {
+      index: 0,
+      weights,
+      weightSum: 0n,
+      drawU: null,
+      usedUniformFallback: false,
+    }
+  }
+  if (n === 1) {
+    return {
+      index: 0,
+      weights,
+      weightSum: weights[0]!,
+      drawU: null,
+      usedUniformFallback: false,
+    }
+  }
+  let weightSum = 0n
+  for (const w of weights) weightSum += w
+  if (weightSum === 0n) {
+    const idx = Math.floor(Math.random() * n)
+    return {
+      index: idx,
+      weights,
+      weightSum: 0n,
+      drawU: null,
+      usedUniformFallback: true,
+    }
+  }
+  const drawU =
+    BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) % weightSum
   let acc = 0n
   for (let i = 0; i < n; i++) {
-    const w = ranks[i]! > 0n ? ranks[i]! : 0n
-    acc += w
-    if (u < acc) return i
+    acc += weights[i]!
+    if (drawU < acc) {
+      return {
+        index: i,
+        weights,
+        weightSum,
+        drawU,
+        usedUniformFallback: false,
+      }
+    }
   }
-  return n - 1
+  return {
+    index: n - 1,
+    weights,
+    weightSum,
+    drawU,
+    usedUniformFallback: false,
+  }
 }
 
-/** P(version) for demo playback (two-way case of sampleWeightedIndex). */
-export function sampleVersionIndex(ranks: [bigint, bigint]): 0 | 1 {
-  return sampleWeightedIndex(ranks) as 0 | 1
+export function sampleWeightedIndex(ranks: bigint[]): number {
+  return sampleWeightedIndexWithTrace(ranks).index
 }

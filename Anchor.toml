@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-stake_to_curate = "4azLw8hCLoPiED81CNGXx5tthAsJUxm64P6kEnbg74ye"
+stake_to_curate = "UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su"
 
 [programs.devnet]
-stake_to_curate = "4azLw8hCLoPiED81CNGXx5tthAsJUxm64P6kEnbg74ye"
+stake_to_curate = "UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su"
 
 [registry]
 url = "https://api.apr.dev"
@@ -19,4 +19,6 @@ cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-# test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+# On-chain integration tests need `target/deploy/stake_to_curate.so` (SBF build). In
+# minimal toolchains, run: `cargo test -p stake_to_curate --lib` for Rust unit tests.
+test = "cargo test -p stake_to_curate --lib -- --nocapture"
