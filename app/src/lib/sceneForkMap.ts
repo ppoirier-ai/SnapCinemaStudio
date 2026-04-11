@@ -24,3 +24,20 @@ export function forkIndexForPlayableCell(
 export function playableVideoCount(col: SceneColumn): number {
   return playableCellsInOrder(col).length
 }
+
+/**
+ * Fork index for **tooltips** only: the first playable cell in row order maps to
+ * fork 0 and the second to fork 1, even when the column does not yet have two
+ * clips (so hover matches Watch once the second clip exists). Third and later
+ * playables return null.
+ */
+export function tooltipForkForPlayableCell(
+  col: SceneColumn,
+  cellId: string,
+): 0 | 1 | null {
+  const playables = playableCellsInOrder(col)
+  const idx = playables.findIndex((c) => c.id === cellId)
+  if (idx === 0) return 0
+  if (idx === 1) return 1
+  return null
+}

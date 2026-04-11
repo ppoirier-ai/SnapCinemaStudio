@@ -59,19 +59,11 @@ export function SceneForkHoverPanel({
         <p className="scene-chain-tip-lead">
           <strong>{timeLabel}</strong> · <strong>{altLabel}</strong>
         </p>
-        {playableCount === 0 || playableCount === 1 ? (
-          <p className="muted scene-chain-tip-copy">
-            Curator stakes use two global forks (same as Watch). Give this time column{' '}
-            <strong>exactly two</strong> playable clips: <strong>Alt 1</strong> → fork
-            0, <strong>Alt 2</strong> → fork 1.
-          </p>
-        ) : (
-          <p className="muted scene-chain-tip-copy">
-            This column has <strong>{playableCount}</strong> clips. For a clear fork
-            mapping, use <strong>exactly two</strong> alternates here (Alt 1 = fork 0,
-            Alt 2 = fork 1).
-          </p>
-        )}
+        <p className="muted scene-chain-tip-copy">
+          This clip is after the first two playables in this column (
+          <strong>{playableCount}</strong> with URLs), so it is not part of the fork
+          0 / fork 1 pair used for Watch and stake tooltips on the first two cells.
+        </p>
       </div>
     )
   }

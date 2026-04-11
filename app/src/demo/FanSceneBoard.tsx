@@ -6,8 +6,8 @@ import {
   type Movie,
 } from '../context/SceneBoardContext'
 import {
-  forkIndexForPlayableCell,
   playableVideoCount,
+  tooltipForkForPlayableCell,
 } from '../lib/sceneForkMap'
 import {
   extractYoutubeVideoId,
@@ -162,7 +162,7 @@ export function FanSceneBoard({ subheading }: Props) {
                               <SceneCellForkTooltip
                                 timeLabel={`Time ${colIndex + 1}`}
                                 altLabel={`Alt ${rowIndex + 1}`}
-                                fork={forkIndexForPlayableCell(col, cell.id)}
+                                fork={tooltipForkForPlayableCell(col, cell.id)}
                                 playableCount={playableVideoCount(col)}
                                 chainSynced={chainSynced}
                                 connected={connected}

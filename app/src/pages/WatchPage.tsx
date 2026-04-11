@@ -227,20 +227,6 @@ export function WatchPage() {
             <code>VITE_STAKE_SLOT_AUTHORITY</code> in <code>.env.example</code>).
           </p>
         )}
-        {playback !== null && chainSynced && (
-          <p className="muted watch-curate-hint">
-            StakeToCurate: you are curating <strong>version {playback}</strong> (up /
-            down / flag each stake 0.01 SOL on devnet; flag uses{' '}
-            <code>stake_down</code>).
-            {instantStakingSessionActive && (
-              <>
-                {' '}
-                Instant mode: thumbs sign with your session wallet (no extra Phantom
-                popups).
-              </>
-            )}
-          </p>
-        )}
         {connected && chainSynced && (
           <div className="watch-instant-session" aria-label="Instant staking session">
             {instantStakingSessionActive && instantSessionMeta ? (
