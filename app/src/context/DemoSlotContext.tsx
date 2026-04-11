@@ -85,6 +85,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const [playback, setPlayback] = useState<0 | 1 | null>(null)
   const [chainSynced, setChainSynced] = useState(false)
   const sampledBothRef = useRef(false)
+  const runInFlightRef = useRef(false)
 
   const append = useCallback((m: string) => {
     setLog((prev) => [
@@ -180,6 +181,8 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   }, [connected, publicKey, refreshOnChain])
 
   const run = async (label: string, fn: () => Promise<void>) => {
+    if (runInFlightRef.current) return
+    runInFlightRef.current = true
     setBusy(true)
     try {
       await fn()
@@ -189,6 +192,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       console.error(e)
       append(`ERR: ${label} — ${e instanceof Error ? e.message : String(e)}`)
     } finally {
+      runInFlightRef.current = false
       setBusy(false)
     }
   }

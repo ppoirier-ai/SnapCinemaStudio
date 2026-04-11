@@ -249,10 +249,29 @@ fn stake_internal(ctx: Context<PlaceStake>, amount: u64, is_up: bool) -> Result<
         ],
     )?;
 
-    version.rank = version
-        .rank
-        .checked_add(amount)
-        .ok_or(ErrorCode::MathOverflow)?;
+    if is_up {
+        version.rank = version
+            .rank
+            .checked_add(amount)
+            .ok_or(ErrorCode::MathOverflow)?;
+    } else {
+        let floor = if version.index == 0 {
+            MIN_INITIAL_RANK
+        } else {
+            1u64
+        };
+        require!(
+            version.rank
+                >= floor
+                    .checked_add(amount)
+                    .ok_or(ErrorCode::MathOverflow)?,
+            ErrorCode::DownStakeRankFloor
+        );
+        version.rank = version
+            .rank
+            .checked_sub(amount)
+            .ok_or(ErrorCode::MathOverflow)?;
+    }
     version.active_stake = version
         .active_stake
         .checked_add(amount)
@@ -543,4 +562,6 @@ pub enum ErrorCode {
     BadCreator,
     #[msg("Bad platform account")]
     BadPlatform,
+    #[msg("Down stake would push version rank below its floor")]
+    DownStakeRankFloor,
 }

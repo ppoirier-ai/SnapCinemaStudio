@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer'
+import bs58 from 'bs58'
 import {
   Connection,
   PublicKey,
@@ -362,6 +363,28 @@ export function ixClaimCurator(
   })
 }
 
+function transactionSignatureBase58(signed: Transaction): string | null {
+  const raw = signed.signatures[0]?.signature
+  if (!raw || raw.length === 0) return null
+  return bs58.encode(raw)
+}
+
+async function signatureAlreadyConfirmed(
+  connection: Connection,
+  signature: string,
+): Promise<boolean> {
+  const { value } = await connection.getSignatureStatuses([signature], {
+    searchTransactionHistory: true,
+  })
+  const st = value[0]
+  if (!st) return false
+  if (st.err) return false
+  return Boolean(
+    st.confirmationStatus ??
+      (typeof st.confirmations === 'number' && st.confirmations > 0),
+  )
+}
+
 export async function sendAndConfirm(
   connection: Connection,
   wallet: { publicKey: PublicKey; signTransaction(tx: Transaction): Promise<Transaction> },
@@ -375,15 +398,28 @@ export async function sendAndConfirm(
     feePayer: wallet.publicKey,
   }).add(...instructions)
   const signed = await wallet.signTransaction(tx)
-  const sig = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: commitment,
-  })
-  await connection.confirmTransaction(
-    { signature: sig, blockhash, lastValidBlockHeight },
-    commitment,
-  )
-  return sig
+  const optimisticSig = transactionSignatureBase58(signed)
+  try {
+    const sig = await connection.sendRawTransaction(signed.serialize(), {
+      skipPreflight: false,
+      preflightCommitment: commitment,
+    })
+    await connection.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight },
+      commitment,
+    )
+    return sig
+  } catch (e) {
+    const text = e instanceof Error ? e.message : String(e)
+    if (
+      optimisticSig &&
+      text.includes('already been processed') &&
+      (await signatureAlreadyConfirmed(connection, optimisticSig))
+    ) {
+      return optimisticSig
+    }
+    throw e
+  }
 }
 
 /**

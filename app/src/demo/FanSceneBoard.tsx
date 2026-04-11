@@ -1,14 +1,20 @@
 import { useState, type FormEvent } from 'react'
+import { useDemoSlot } from '../context/DemoSlotContext'
 import {
   getFirstYoutubeVideoIdFromMovie,
   useMovies,
   type Movie,
 } from '../context/SceneBoardContext'
 import {
+  forkIndexForPlayableCell,
+  playableVideoCount,
+} from '../lib/sceneForkMap'
+import {
   extractYoutubeVideoId,
   isProbablyYoutubeUrl,
   youtubeThumbnailUrl,
 } from '../lib/youtubeUrl'
+import { SceneCellForkTooltip } from './SceneCellForkTooltip'
 
 type Props = {
   subheading?: string
@@ -31,6 +37,16 @@ export function FanSceneBoard({ subheading }: Props) {
     addAlternative,
     setCellUrl,
   } = useMovies()
+  const {
+    chainSynced,
+    connected,
+    busy,
+    v0,
+    v1,
+    pos0,
+    pos1,
+    onUnstake,
+  } = useDemoSlot()
 
   const active = selectedMovieId ? getMovie(selectedMovieId) : null
   const movieId = active?.id
@@ -81,7 +97,10 @@ export function FanSceneBoard({ subheading }: Props) {
       <p className="muted fan-scene-board-legend">
         Choose a movie, then edit its scene matrix. <strong>Columns</strong> are time;
         <strong>rows</strong> are alternate Shorts-style cuts. Anyone can add or replace
-        scenes for any movie in this browser.
+        scenes for any movie in this browser. When a column has <strong>exactly two</strong>{' '}
+        clips with URLs, <strong>Alt 1</strong> maps to on-chain <strong>fork 0</strong> and{' '}
+        <strong>Alt 2</strong> to <strong>fork 1</strong> (same two forks as Watch). Hover a
+        thumbnail for rank, stakes, and actions.
       </p>
       {subheading && <p className="muted fan-scene-board-sub">{subheading}</p>}
 
@@ -140,14 +159,29 @@ export function FanSceneBoard({ subheading }: Props) {
                           <div className="scene-cell-meta">Alt {rowIndex + 1}</div>
                           {cell.youtubeUrl && id ? (
                             <div className="scene-cell-filled">
-                              <div className="scene-thumb-ring">
-                                <img
-                                  className="scene-thumb"
-                                  src={youtubeThumbnailUrl(id)}
-                                  alt=""
-                                  loading="lazy"
-                                />
-                              </div>
+                              <SceneCellForkTooltip
+                                timeLabel={`Time ${colIndex + 1}`}
+                                altLabel={`Alt ${rowIndex + 1}`}
+                                fork={forkIndexForPlayableCell(col, cell.id)}
+                                playableCount={playableVideoCount(col)}
+                                chainSynced={chainSynced}
+                                connected={connected}
+                                busy={busy}
+                                v0={v0}
+                                v1={v1}
+                                pos0={pos0}
+                                pos1={pos1}
+                                onUnstake={onUnstake}
+                              >
+                                <div className="scene-thumb-ring">
+                                  <img
+                                    className="scene-thumb"
+                                    src={youtubeThumbnailUrl(id)}
+                                    alt=""
+                                    loading="lazy"
+                                  />
+                                </div>
+                              </SceneCellForkTooltip>
                               <div className="scene-cell-actions">
                                 <button
                                   type="button"

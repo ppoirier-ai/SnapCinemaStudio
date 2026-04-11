@@ -16,6 +16,29 @@ export function InitPanel({ demoSlotId, connected, busy, onSetup }: Props) {
         <code>VITE_STAKE_SLOT_AUTHORITY</code> when set, otherwise your connected
         wallet).
       </p>
+      <p className="muted init-panel-cluster-note">
+        <strong>Wallet cluster must match the app RPC.</strong> This build defaults to{' '}
+        <strong>devnet</strong> (<code>VITE_SOLANA_RPC</code> or public devnet). In
+        Phantom, use <strong>Devnet</strong> — not &quot;Testnet&quot; (Solana testnet is
+        a different network). Mismatch causes &quot;reverted during simulation&quot;.
+      </p>
+      <p className="muted init-panel-cluster-note">
+        <strong>Devnet SOL required.</strong> Setup creates new accounts (rent) plus
+        fees. A zero balance will fail simulation — use a devnet faucet (e.g.{' '}
+        <a
+          href="https://faucet.solana.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          faucet.solana.com
+        </a>
+        ) for the <strong>slot authority</strong> wallet.
+      </p>
+      <p className="muted init-panel-cluster-note">
+        If you see <strong>&quot;already been processed&quot;</strong>, the same setup tx
+        may have already landed — click <strong>Refresh on-chain state</strong> above;
+        do not repeat-sign the identical transaction in Phantom.
+      </p>
       <button
         type="button"
         className="btn btn-primary"

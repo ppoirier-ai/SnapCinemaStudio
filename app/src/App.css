@@ -1330,6 +1330,101 @@
 }
 
 /* Fan scene board — time (columns) × alternatives (rows) */
+/* Thumbnail anchor for fork tooltip (panel renders in a body portal) */
+.scene-cell-tooltip-host--anchor {
+  width: 100%;
+  max-width: 8.25rem;
+  outline: none;
+  border-radius: 14px;
+}
+
+.scene-cell-chain-tooltip {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--st-border-strong);
+  background: var(--st-surface-2);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.scene-cell-chain-tooltip--portal {
+  box-sizing: border-box;
+  max-height: min(72vh, 520px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-break: break-word;
+}
+
+/* Portaled fork tooltip: must sit under `.studio` so tokens + `.studio .btn` apply */
+.studio.scene-tooltip-portal {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  min-height: 0;
+  max-width: none;
+  width: auto;
+  height: auto;
+  flex: none;
+  display: block;
+  gap: 0;
+  text-align: left;
+}
+
+.studio.scene-tooltip-portal .scene-cell-chain-tooltip--portal {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scene-chain-tip-lead {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+}
+
+.scene-chain-tip-map {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+}
+
+.scene-chain-tip-copy {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.scene-chain-dl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.2rem 0.55rem;
+  margin: 0.35rem 0 0.45rem;
+}
+
+.scene-chain-dl dt {
+  margin: 0;
+  color: var(--st-muted);
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.scene-chain-dl dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.scene-chain-tip-actions-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+}
+
+.scene-chain-tip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .fan-scene-board-legend {
   margin-bottom: 0.75rem;
 }
@@ -1344,6 +1439,7 @@
   flex-wrap: nowrap;
   gap: 1.25rem;
   overflow-x: auto;
+  overflow-y: visible;
   padding: 0.25rem 0 1rem;
   align-items: flex-start;
 }
@@ -1354,6 +1450,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  overflow: visible;
 }
 
 .scene-column-head {
@@ -1375,6 +1472,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  overflow: visible;
 }
 
 .scene-cell-meta {

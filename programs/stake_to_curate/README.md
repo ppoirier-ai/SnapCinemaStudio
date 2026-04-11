@@ -29,7 +29,7 @@ The Vite app keys the demo slot by `(authority, slot_id)`. For **Watch**, set **
 |-------------|------|
 | `initialize_slot` | Authority + creator + platform pubkeys; creates **slot** PDA + **vault** PDA. |
 | `register_version` | Authority adds a **version** under a slot (initial rank; v0 floored to ≥ 1_000_000). |
-| `stake_up` / `stake_down` | Lock SOL in vault; bump **rank**; open position with `entry_rank` snapshot (same user/version is **one** side). |
+| `stake_up` / `stake_down` | Lock SOL in vault; **stake_up** adds `amount` to **rank**, **stake_down** subtracts it (floored: v0 ≥ 1_000_000, v1 ≥ 1); open position with `entry_rank` snapshot (same user/version is **one** side). |
 | `unstake` | Return principal; remove active rank; add **~1%** min-1-lamport **residual** rank. |
 | `deposit_revenue` | **20%** creator, **10%** platform, **70%** split across **remaining** `Position` accounts for that version (weights: spec delta × bonding × active/residual). |
 | `claim_curator` | Pay `accrued_rewards` from vault to owner. |

@@ -7,9 +7,7 @@ import { LogPanel } from '../demo/LogPanel'
 import { PositionsPanel } from '../demo/PositionsPanel'
 import { RevenuePanel } from '../demo/RevenuePanel'
 import { RoleTabs } from '../demo/RoleTabs'
-import { StakePanel } from '../demo/StakePanel'
 import type { DemoRole } from '../demo/types'
-import { VersionsPanel } from '../demo/VersionsPanel'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import { DEMO_SLOT_ID } from '../stakeToCurate/client'
 
@@ -20,17 +18,12 @@ export function StudioDemoPage() {
     connected,
     busy,
     slotPk,
-    v0,
-    v1,
     pos0,
     pos1,
     playback,
     log,
     refreshOnChain,
     onSetup,
-    onStakeUp,
-    onStakeDown,
-    onUnstake,
     onDeposit,
     onClaim,
     onRollPlayback,
@@ -70,8 +63,8 @@ export function StudioDemoPage() {
         <p className="lede">
           <strong>Creator:</strong> save your project title and description here.
           Scene YouTube links and alternates are edited from the wallet menu under{' '}
-          <strong>Scene</strong>. Revenue tools below still follow on-chain versions (v0
-          / v1).
+          <strong>Scene</strong> for ranks, stakes, and the scene matrix. Revenue tools
+          below use the same on-chain v0 / v1.
         </p>
       )}
 
@@ -97,7 +90,6 @@ export function StudioDemoPage() {
       {role === 'creator' && (
         <>
           <CreatorProjectForm />
-          <VersionsPanel v0={v0} v1={v1} connected={connected} />
           <RevenuePanel
             connected={connected}
             busy={busy}
@@ -112,18 +104,10 @@ export function StudioDemoPage() {
           <section className="panel admin-tools-note">
             <h2>Advanced tools</h2>
             <p className="muted">
-              Full stake matrix, positions, and mock playback for testing are
-              available here without switching wallets.
+              Ranks and stake / downstake live on the wallet menu <strong>Scene</strong>{' '}
+              page. Positions detail and mock playback stay here for testing.
             </p>
           </section>
-          <VersionsPanel v0={v0} v1={v1} connected={connected} />
-          <StakePanel
-            connected={connected}
-            busy={busy}
-            onStakeUp={onStakeUp}
-            onStakeDown={onStakeDown}
-            onUnstake={onUnstake}
-          />
           <PositionsPanel pos0={pos0} pos1={pos1} connected={connected} />
           <RevenuePanel
             connected={connected}
