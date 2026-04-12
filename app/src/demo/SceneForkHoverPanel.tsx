@@ -59,7 +59,9 @@ export function SceneForkHoverPanel({
         <>
           <dl className="scene-chain-dl">
             <dt>Rank (this scene)</dt>
-            <dd>{scene.rank.toString()}</dd>
+            <dd title="On-chain curation weight; each upstake adds (stake lamports ÷ 10) to rank while the vault receives the full stake.">
+              {scene.rank.toString()}
+            </dd>
             <dt>Total active stake (this scene)</dt>
             <dd>{lamportsToSol(scene.activeStake)} SOL</dd>
             <dt>Your upstake</dt>

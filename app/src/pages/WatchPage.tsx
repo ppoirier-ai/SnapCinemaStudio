@@ -6,7 +6,7 @@ import {
   useMovies,
   type Movie,
 } from '../context/SceneBoardContext'
-import { FAN_REACTION_LAMPORTS } from '../demo/constants'
+import { FAN_REACTION_STAKE_LAMPORTS } from '../demo/constants'
 import { lamportsToSol } from '../demo/format'
 import { IconFlag, IconThumbDown, IconThumbUp } from '../components/ReactionIcons'
 import { envYoutubeVideoId, youtubeEmbedSrc } from '../lib/youtubeEmbed'
@@ -195,7 +195,7 @@ export function WatchPage() {
       const ok = await ensureInstantSessionForWatch()
       if (!ok) return
     }
-    void onStakeUp(currentSceneKeyHex, FAN_REACTION_LAMPORTS)
+    void onStakeUp(currentSceneKeyHex, FAN_REACTION_STAKE_LAMPORTS)
   }
 
   const onThumbDown = async () => {
@@ -204,7 +204,7 @@ export function WatchPage() {
       const ok = await ensureInstantSessionForWatch()
       if (!ok) return
     }
-    void onStakeDown(currentSceneKeyHex, FAN_REACTION_LAMPORTS)
+    void onStakeDown(currentSceneKeyHex, FAN_REACTION_STAKE_LAMPORTS)
   }
 
   const onFlag = async () => {
@@ -213,7 +213,7 @@ export function WatchPage() {
       const ok = await ensureInstantSessionForWatch()
       if (!ok) return
     }
-    void onStakeDown(currentSceneKeyHex, FAN_REACTION_LAMPORTS)
+    void onStakeDown(currentSceneKeyHex, FAN_REACTION_STAKE_LAMPORTS)
     setToast('Flag sent: stake_down on this scene (devnet).')
   }
 

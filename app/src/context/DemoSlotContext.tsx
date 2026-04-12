@@ -22,6 +22,7 @@ import {
   tryDecodeScenePosition,
   ixInitializeSlot,
   ixRegisterScene,
+  ixResetSceneRank,
   ixStakeSceneDown,
   ixStakeSceneUp,
   ixUnstakeScene,
@@ -38,6 +39,7 @@ import {
   hexToSceneKeyBytes,
   sceneKeyHex,
 } from '../stakeToCurate/sceneKey'
+import { REGISTER_SCENE_INITIAL_RANK_LAMPORTS } from '../demo/constants'
 import {
   clearInstantSessionStorage,
   createEphemeralKeypair,
@@ -136,6 +138,8 @@ async function loadSceneRows(
     const sAi = await connection.getAccountInfo(pos.scene)
     const scene = sAi?.data ? tryDecodeScene(Buffer.from(sAi.data)) : null
     if (!scene) continue
+    /** Positions are global per owner; only rows for *this* slot’s Scene PDAs belong here. */
+    if (!scene.slot.equals(slotPk)) continue
     const hex = bytesToHex(scene.sceneKey)
     out[hex] = { scene, position: pos }
   }
@@ -199,7 +203,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const slotPk = useMemo(
     () =>
       slotAuthorityPk ? slotPda(slotAuthorityPk, DEMO_SLOT_ID) : null,
-    [slotAuthorityPk],
+    [slotAuthorityPk, DEMO_SLOT_ID],
   )
 
   useEffect(() => {
@@ -452,7 +456,9 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     async (movie: Movie) => {
       if (!publicKey || !signTransaction || !slotAuthorityPk || !slotPk) return
       if (!publicKey.equals(slotAuthorityPk)) return
-      const ixs = []
+      const ixs: TransactionInstruction[] = []
+      let registerCount = 0
+      let rankBumpCount = 0
       for (const col of movie.columns) {
         for (const cell of col.cells) {
           if (!extractYoutubeVideoId(cell.youtubeUrl ?? '')) continue
@@ -462,8 +468,30 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
           const ai = await connection.getAccountInfo(pk)
           if (!ai) {
             ixs.push(
-              ixRegisterScene(publicKey, DEMO_SLOT_ID, bytes, 1_000_000n),
+              ixRegisterScene(
+                publicKey,
+                DEMO_SLOT_ID,
+                bytes,
+                REGISTER_SCENE_INITIAL_RANK_LAMPORTS,
+              ),
             )
+            registerCount += 1
+            continue
+          }
+          const decoded = tryDecodeScene(Buffer.from(ai.data))
+          if (
+            decoded &&
+            decoded.rank < REGISTER_SCENE_INITIAL_RANK_LAMPORTS
+          ) {
+            ixs.push(
+              ixResetSceneRank(
+                publicKey,
+                DEMO_SLOT_ID,
+                bytes,
+                REGISTER_SCENE_INITIAL_RANK_LAMPORTS,
+              ),
+            )
+            rankBumpCount += 1
           }
         }
       }
@@ -473,7 +501,14 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         const slice = ixs.slice(i, i + CHUNK)
         await sendAndConfirm(connection, { publicKey, signTransaction }, slice)
       }
-      append(`Registered ${ixs.length} scene(s) on-chain`)
+      const parts: string[] = []
+      if (registerCount > 0)
+        parts.push(`registered ${registerCount} new scene(s)`)
+      if (rankBumpCount > 0)
+        parts.push(
+          `raised rank on ${rankBumpCount} scene(s) so downstake (thumbs) clears the on-chain floor`,
+        )
+      append(parts.length > 0 ? `OK: ${parts.join(' · ')}` : `OK: chain update (${ixs.length} ix)`)
       await refreshOnChain(movie)
     },
     [
@@ -599,10 +634,48 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     run(`unstake_scene ${sceneKeyHexArg.slice(0, 10)}…`, async () => {
       if (!slotAuthorityPk) throw new Error('Missing slot authority')
       const sk = hexToSceneKeyBytes(sceneKeyHexArg)
-      const kp = instantKeypairRef.current
-      if (isInstantSessionUsable() && kp) {
-        await sendAndConfirmWithKeypair(connection, kp, [
-          ixUnstakeScene(kp.publicKey, slotAuthorityPk, DEMO_SLOT_ID, sk),
+      const slot = slotPda(slotAuthorityPk, DEMO_SLOT_ID)
+      const sceneAddr = scenePda(slot, sk)
+
+      /** Prefer custodian, then instant session — matches where the user actually staked. */
+      type StakeOwner = { owner: PublicKey; sessionKp: Keypair | null }
+      const candidates: StakeOwner[] = []
+      if (publicKey) candidates.push({ owner: publicKey, sessionKp: null })
+      const sessionKp = instantKeypairRef.current
+      if (isInstantSessionUsable() && sessionKp) {
+        if (!publicKey || !sessionKp.publicKey.equals(publicKey)) {
+          candidates.push({ owner: sessionKp.publicKey, sessionKp })
+        }
+      }
+      if (candidates.length === 0)
+        throw new Error('Connect wallet first (or enable instant staking).')
+
+      let chosen: StakeOwner | null = null
+      for (const c of candidates) {
+        const posPk = scenePositionPda(sceneAddr, c.owner)
+        const ai = await connection.getAccountInfo(posPk)
+        if (!ai?.data) continue
+        const pos = tryDecodeScenePosition(Buffer.from(ai.data))
+        if (pos && pos.amount > 0n) {
+          chosen = c
+          break
+        }
+      }
+
+      if (!chosen) {
+        throw new Error(
+          'No active stake for this scene on your wallet (or instant session). Stake and unstake must use the same signer.',
+        )
+      }
+
+      if (chosen.sessionKp) {
+        await sendAndConfirmWithKeypair(connection, chosen.sessionKp, [
+          ixUnstakeScene(
+            chosen.owner,
+            slotAuthorityPk,
+            DEMO_SLOT_ID,
+            sk,
+          ),
         ])
         return
       }
@@ -613,7 +686,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         { publicKey, signTransaction },
         [
           ixUnstakeScene(
-            publicKey,
+            chosen.owner,
             slotAuthorityPk,
             DEMO_SLOT_ID,
             sk,

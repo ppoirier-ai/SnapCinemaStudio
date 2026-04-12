@@ -10,6 +10,18 @@ declare_id!("UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su");
 /// Minimum initial rank / down-stake floor (lamports-scale weight).
 const MIN_INITIAL_RANK: u64 = 1_000_000;
 
+/// Rank moves by `amount / RANK_STAKE_SCALE` (min 1 per non-zero stake) while the vault still
+/// receives the full `amount` lamports — so e.g. 0.01 SOL reactions nudge rank less than 1:1.
+const RANK_STAKE_SCALE: u64 = 10;
+
+fn rank_delta(amount: u64) -> Result<u64> {
+    require!(amount > 0, ErrorCode::ZeroAmount);
+    let q = amount
+        .checked_div(RANK_STAKE_SCALE)
+        .ok_or(ErrorCode::MathOverflow)?;
+    Ok(if q == 0 { 1 } else { q })
+}
+
 #[program]
 pub mod stake_to_curate {
     use super::*;
@@ -63,12 +75,14 @@ pub mod stake_to_curate {
             &ctx.accounts.owner.to_account_info(),
             slot,
             amt,
+            &ctx.accounts.system_program.to_account_info(),
         )?;
 
         let residual = (amt / 100).max(1);
+        let rd = rank_delta(amt)?;
         scene.rank = scene
             .rank
-            .checked_sub(amt)
+            .checked_sub(rd)
             .ok_or(ErrorCode::MathOverflow)?;
         scene.rank = scene
             .rank
@@ -127,22 +141,23 @@ fn stake_scene_internal(ctx: Context<PlaceStakeScene>, amount: u64, is_up: bool)
         ],
     )?;
 
+    let rd = rank_delta(amount)?;
     if is_up {
         scene.rank = scene
             .rank
-            .checked_add(amount)
+            .checked_add(rd)
             .ok_or(ErrorCode::MathOverflow)?;
     } else {
         require!(
             scene.rank
                 >= MIN_INITIAL_RANK
-                    .checked_add(amount)
+                    .checked_add(rd)
                     .ok_or(ErrorCode::MathOverflow)?,
             ErrorCode::DownStakeRankFloor
         );
         scene.rank = scene
             .rank
-            .checked_sub(amount)
+            .checked_sub(rd)
             .ok_or(ErrorCode::MathOverflow)?;
     }
     scene.active_stake = scene
@@ -165,6 +180,7 @@ fn transfer_from_vault<'info>(
     to: &AccountInfo<'info>,
     slot: &Account<Slot>,
     amount: u64,
+    system_program: &AccountInfo<'info>,
 ) -> Result<()> {
     if amount == 0 {
         return Ok(());
@@ -174,7 +190,7 @@ fn transfer_from_vault<'info>(
     let seeds: &[&[u8]] = &[b"vault", slot_key.as_ref(), bump.as_ref()];
     invoke_signed(
         &system_instruction::transfer(vault.key, to.key, amount),
-        &[vault.clone(), to.clone()],
+        &[vault.clone(), to.clone(), system_program.clone()],
         &[seeds],
     )?;
     Ok(())
@@ -324,6 +340,7 @@ pub struct UnstakeSceneAccounts<'info> {
         bump = slot.vault_bump
     )]
     pub vault: Account<'info, StakeVault>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]

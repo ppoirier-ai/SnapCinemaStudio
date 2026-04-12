@@ -29,7 +29,19 @@ const IX = {
 export const DEFAULT_RPC =
   import.meta.env.VITE_SOLANA_RPC ?? clusterApiUrl('devnet')
 
-export const DEMO_SLOT_ID = 0
+/** On-chain `slot_id` (0–255). Increase `VITE_DEMO_SLOT_ID` in `.env` for a fresh slot (empty stakes) with the same authority wallet. */
+function demoSlotIdFromEnv(): number {
+  const raw = import.meta.env.VITE_DEMO_SLOT_ID
+  if (raw == null || String(raw).trim() === '') return 0
+  const n = Number.parseInt(String(raw).trim(), 10)
+  if (!Number.isFinite(n) || n < 0 || n > 255) {
+    console.warn('VITE_DEMO_SLOT_ID must be an integer 0–255; using 0')
+    return 0
+  }
+  return n & 0xff
+}
+
+export const DEMO_SLOT_ID = demoSlotIdFromEnv()
 
 /**
  * Optional shared demo slot owner (base58). When set, all users read the same
@@ -362,6 +374,7 @@ export function ixUnstakeScene(
       { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vault, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: IX.unstake_scene,
   })
