@@ -4,6 +4,7 @@ import {
   Connection,
   Keypair,
   PublicKey,
+  SendTransactionError,
   SystemProgram,
   Transaction,
   TransactionInstruction,
@@ -99,6 +100,11 @@ function u64le(n: bigint): Buffer {
 }
 
 function readU64LE(data: Buffer, offset: number): bigint {
+  if (offset + 8 > data.length) {
+    throw new RangeError(
+      `readU64LE out of range: offset ${offset}, need 8 bytes, have ${data.length}`,
+    )
+  }
   let v = 0n
   for (let i = 0; i < 8; i++) {
     v |= BigInt(data[offset + i]!) << BigInt(8 * i)
@@ -108,8 +114,16 @@ function readU64LE(data: Buffer, offset: number): bigint {
 
 export const SCENE_POSITION_DATA_LEN = 99
 
+/** 8-byte Anchor discriminator + `Scene` body (`programs/stake_to_curate`). */
+export const SCENE_ACCOUNT_DATA_LEN = 89
+
 /** 8-byte discriminator + `Scene` account body */
 export function decodeScene(data: Buffer) {
+  if (data.length < SCENE_ACCOUNT_DATA_LEN) {
+    throw new RangeError(
+      `Scene account buffer too short: ${data.length} (need ${SCENE_ACCOUNT_DATA_LEN})`,
+    )
+  }
   let p = 8
   const slot = new PublicKey(data.subarray(p, p + 32))
   p += 32
@@ -123,8 +137,25 @@ export function decodeScene(data: Buffer) {
   return { slot, sceneKey, rank, activeStake, bump }
 }
 
+/** Safe decode for RPC data (wrong layout, pre-migration account, or garbage address). */
+export function tryDecodeScene(data: Buffer | undefined): ReturnType<
+  typeof decodeScene
+> | null {
+  if (!data || data.length < SCENE_ACCOUNT_DATA_LEN) return null
+  try {
+    return decodeScene(data)
+  } catch {
+    return null
+  }
+}
+
 /** 8-byte discriminator + `ScenePosition` account body */
 export function decodeScenePosition(data: Buffer) {
+  if (data.length < SCENE_POSITION_DATA_LEN) {
+    throw new RangeError(
+      `ScenePosition buffer too short: ${data.length} (need ${SCENE_POSITION_DATA_LEN})`,
+    )
+  }
   let p = 8
   const scene = new PublicKey(data.subarray(p, p + 32))
   p += 32
@@ -150,6 +181,17 @@ export function decodeScenePosition(data: Buffer) {
     entryRank,
     accruedRewards,
     bump,
+  }
+}
+
+export function tryDecodeScenePosition(
+  data: Buffer | undefined,
+): ReturnType<typeof decodeScenePosition> | null {
+  if (!data || data.length < SCENE_POSITION_DATA_LEN) return null
+  try {
+    return decodeScenePosition(data)
+  } catch {
+    return null
   }
 }
 
@@ -331,6 +373,29 @@ function transactionSignatureBase58(signed: Transaction): string | null {
   return bs58.encode(raw)
 }
 
+/** Prefer full simulation logs when the RPC wraps failure as {@link SendTransactionError}. */
+async function wrapSendTransactionError(
+  connection: Connection,
+  e: unknown,
+): Promise<Error> {
+  if (e instanceof SendTransactionError) {
+    let logBlock = ''
+    try {
+      const fetched = await e.getLogs(connection)
+      if (fetched.length > 0) {
+        logBlock = `\nLogs:\n${fetched.join('\n')}`
+      }
+    } catch {
+      /* ignore log fetch failures */
+    }
+    if (!logBlock && e.logs?.length) {
+      logBlock = `\nLogs:\n${e.logs.join('\n')}`
+    }
+    return new Error(`${e.message}${logBlock}`, { cause: e })
+  }
+  return e instanceof Error ? e : new Error(String(e))
+}
+
 async function signatureAlreadyConfirmed(
   connection: Connection,
   signature: string,
@@ -380,7 +445,7 @@ export async function sendAndConfirm(
     ) {
       return optimisticSig
     }
-    throw e
+    throw await wrapSendTransactionError(connection, e)
   }
 }
 
@@ -421,7 +486,7 @@ export async function sendAndConfirmWithKeypair(
     ) {
       return optimisticSig
     }
-    throw e
+    throw await wrapSendTransactionError(connection, e)
   }
 }
 

@@ -8,6 +8,7 @@ type Props = {
   publicKey: PublicKey | null
   connected: boolean
   busy: boolean
+  chainRefreshBusy: boolean
   positions: Array<{ sceneKeyHex: string; position: P }>
   onRefresh: () => void
 }
@@ -16,6 +17,7 @@ export function AccountPanelContent({
   publicKey,
   connected,
   busy,
+  chainRefreshBusy,
   positions,
   onRefresh,
 }: Props) {
@@ -49,10 +51,11 @@ export function AccountPanelContent({
       <button
         type="button"
         className="btn btn-secondary"
-        disabled={busy}
+        disabled={busy || chainRefreshBusy}
+        aria-busy={chainRefreshBusy}
         onClick={() => void onRefresh()}
       >
-        Refresh balances
+        {chainRefreshBusy ? 'Refreshing…' : 'Refresh balances'}
       </button>
       <p className="muted" style={{ marginTop: '1rem' }}>
         Curator <strong>claim</strong> is deferred in the per-scene MVP (no{' '}

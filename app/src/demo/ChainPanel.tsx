@@ -6,6 +6,7 @@ type Props = {
   slotPk: PublicKey | null
   connected: boolean
   busy: boolean
+  chainRefreshBusy: boolean
   onRefresh: () => void
 }
 
@@ -14,6 +15,7 @@ export function ChainPanel({
   slotPk,
   connected,
   busy,
+  chainRefreshBusy,
   onRefresh,
 }: Props) {
   return (
@@ -32,10 +34,11 @@ export function ChainPanel({
       <button
         type="button"
         className="btn btn-primary"
-        disabled={!connected || busy}
+        disabled={!connected || busy || chainRefreshBusy}
+        aria-busy={chainRefreshBusy}
         onClick={() => void onRefresh()}
       >
-        Refresh on-chain state
+        {chainRefreshBusy ? 'Refreshing…' : 'Refresh on-chain state'}
       </button>
     </section>
   )

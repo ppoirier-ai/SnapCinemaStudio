@@ -3,7 +3,14 @@ import { useDemoSlot } from '../context/DemoSlotContext'
 import { AccountPanelContent } from '../demo/AccountPanelContent'
 
 export function AccountPage() {
-  const { publicKey, connected, busy, sceneRows, refreshOnChain } = useDemoSlot()
+  const {
+    publicKey,
+    connected,
+    busy,
+    chainRefreshBusy,
+    sceneRows,
+    refreshOnChain,
+  } = useDemoSlot()
 
   const positions = useMemo(
     () =>
@@ -24,8 +31,9 @@ export function AccountPage() {
           publicKey={publicKey}
           connected={connected}
           busy={busy}
+          chainRefreshBusy={chainRefreshBusy}
           positions={positions}
-          onRefresh={() => void refreshOnChain(null)}
+          onRefresh={() => void refreshOnChain(null, { log: true })}
         />
       </section>
     </main>

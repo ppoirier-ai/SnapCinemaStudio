@@ -4,20 +4,25 @@ On-chain **proof-of-curation** primitive for SnapCinema Studio. Full mechanics a
 
 ## Program ID
 
-- **Localnet / devnet (scaffold):** `4azLw8hCLoPiED81CNGXx5tthAsJUxm64P6kEnbg74ye` (matches `declare_id!` and [`Anchor.toml`](../../Anchor.toml)).
+- **Scaffold (this repo):** `UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su` — matches `declare_id!` in [`src/lib.rs`](./src/lib.rs), [`keys/stake_to_curate-keypair.json`](./keys/stake_to_curate-keypair.json), and [`Anchor.toml`](../../Anchor.toml).
 
 ## Build & deploy
 
-1. Copy the committed dev keypair into Anchor’s deploy dir (ignored by git):
+1. From the **repo root:** `anchor build`.
+
+2. Deploy to **devnet** with the CLI (recommended; matches `declare_id!`):
 
    ```bash
-   mkdir -p ../../target/deploy
-   cp keys/stake_to_curate-keypair.json ../../target/deploy/stake_to_curate-keypair.json
+   solana program deploy target/deploy/stake_to_curate.so \
+     --program-id programs/stake_to_curate/keys/stake_to_curate-keypair.json \
+     --url https://api.devnet.solana.com
    ```
 
-2. From the **repo root:** `anchor build` then `anchor deploy --provider.cluster devnet` (with Solana CLI configured).
+   Use a funded devnet wallet (`solana config set --url devnet`).
 
-3. Regenerate a fresh program id for a serious deployment: new keypair, update `declare_id!`, `[programs.*]` in `Anchor.toml`, and redeploy — do **not** reuse the scaffold keypair on mainnet.
+3. Point the app at that program: `VITE_STAKE_TO_CURATE_PROGRAM_ID` in `app/.env` (see `app/.env.example`).
+
+4. For a **new** production id: generate a keypair, update `declare_id!`, `[programs.*]` in `Anchor.toml`, rebuild, deploy — do **not** reuse the scaffold keypair on mainnet.
 
 ## Web demo: shared slot (Watch)
 

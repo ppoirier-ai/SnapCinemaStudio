@@ -18,11 +18,14 @@ import {
   decodeScene,
   decodeScenePosition,
   fetchScenePositionsForOwner,
+  tryDecodeScene,
+  tryDecodeScenePosition,
   ixInitializeSlot,
   ixRegisterScene,
   ixStakeSceneDown,
   ixStakeSceneUp,
   ixUnstakeScene,
+  PROGRAM_ID,
   scenePda,
   scenePositionPda,
   resolveStakeSlotAuthority,
@@ -72,11 +75,19 @@ type DemoSlotValue = {
   rankBySceneKeyHex: Record<string, bigint>
   log: string[]
   busy: boolean
+  /** True while a user-triggered chain refresh (RPC read) is in flight. */
+  chainRefreshBusy: boolean
   toast: string | null
   setToast: (t: string | null) => void
   append: (m: string) => void
-  /** Pass the current movie to refresh playable scene accounts; omit for slot + positions only. */
-  refreshOnChain: (movie?: Movie | null) => Promise<void>
+  /**
+   * Reload slot / scene rows from RPC. Pass the current movie to fetch each playable cell’s
+   * Scene account. Use `{ log: true }` from UI buttons so the log panel and toast update.
+   */
+  refreshOnChain: (
+    movie?: Movie | null,
+    opts?: { log?: boolean },
+  ) => Promise<void>
   /** Slot authority only: `register_scene` for each playable cell missing a Scene account. */
   ensureScenesRegisteredForMovie: (movie: Movie) => Promise<void>
   run: (label: string, fn: () => Promise<void>) => Promise<void>
@@ -120,9 +131,10 @@ async function loadSceneRows(
 
   const posAccounts = await fetchScenePositionsForOwner(connection, positionOwner)
   for (const { data } of posAccounts) {
-    const pos = decodeScenePosition(data)
+    const pos = tryDecodeScenePosition(Buffer.from(data))
+    if (!pos) continue
     const sAi = await connection.getAccountInfo(pos.scene)
-    const scene = sAi?.data ? decodeScene(Buffer.from(sAi.data)) : null
+    const scene = sAi?.data ? tryDecodeScene(Buffer.from(sAi.data)) : null
     if (!scene) continue
     const hex = bytesToHex(scene.sceneKey)
     out[hex] = { scene, position: pos }
@@ -139,8 +151,8 @@ async function loadSceneRows(
         connection.getAccountInfo(posPk),
       ])
       out[hex] = {
-        scene: sAi?.data ? decodeScene(Buffer.from(sAi.data)) : null,
-        position: pAi?.data ? decodeScenePosition(Buffer.from(pAi.data)) : null,
+        scene: sAi?.data ? tryDecodeScene(Buffer.from(sAi.data)) : null,
+        position: pAi?.data ? tryDecodeScenePosition(Buffer.from(pAi.data)) : null,
       }
     }
   }
@@ -155,6 +167,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
 
   const [log, setLog] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const [chainRefreshBusy, setChainRefreshBusy] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [sceneRows, setSceneRows] = useState<SceneRows>({})
   const [slotInitialized, setSlotInitialized] = useState(false)
@@ -163,6 +176,8 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const instantKeypairRef = useRef<Keypair | null>(null)
   const instantSessionMetaRef = useRef<InstantSessionMeta | null>(null)
   const finalizeInFlightRef = useRef(false)
+  /** When slot PDA or position owner changes, replace scene rows instead of merging. */
+  const sceneRowsChainKeyRef = useRef<string>('')
 
   const [instantSessionMeta, setInstantSessionMeta] =
     useState<InstantSessionMeta | null>(null)
@@ -192,10 +207,23 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   }, [instantSessionMeta])
 
   const refreshOnChain = useCallback(
-    async (movie?: Movie | null) => {
+    async (movie?: Movie | null, opts?: { log?: boolean }) => {
+      const verbose = opts?.log === true
       if (!slotAuthorityPk || !slotPk || !publicKey) {
+        if (verbose) {
+          append('Refresh skipped — connect your wallet first.')
+          setToast('Connect your wallet to refresh.')
+        }
         setChainSynced(true)
         return
+      }
+      if (verbose) {
+        setChainRefreshBusy(true)
+        append(
+          movie
+            ? 'Refreshing on-chain (including current movie scenes)…'
+            : 'Refreshing on-chain…',
+        )
       }
       const meta = instantSessionMetaRef.current
       const positionOwner =
@@ -212,7 +240,15 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
           positionOwner,
           movie ?? undefined,
         )
-        setSceneRows(rows)
+        const chainKey = `${slotPk.toBase58()}|${positionOwner.toBase58()}`
+        const identityChanged = chainKey !== sceneRowsChainKeyRef.current
+        if (identityChanged) {
+          sceneRowsChainKeyRef.current = chainKey
+        }
+        setSceneRows((prev) => {
+          if (identityChanged) return rows
+          return { ...prev, ...rows }
+        })
 
         if (meta?.ephemeralPk != null) {
           const b = await connection.getBalance(new PublicKey(meta.ephemeralPk))
@@ -220,13 +256,28 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         } else {
           setInstantSessionBalanceLamports(null)
         }
+        if (verbose) {
+          append(
+            slotAi?.data?.length
+              ? 'OK: refreshed — slot account found'
+              : 'OK: refreshed — slot account missing (run Setup once)',
+          )
+          setToast('On-chain state updated')
+        }
       } catch (e) {
         console.error(e)
+        if (verbose) {
+          append(
+            `ERR: refresh — ${e instanceof Error ? e.message : String(e)}`,
+          )
+          setToast('Refresh failed — see log')
+        }
       } finally {
+        if (verbose) setChainRefreshBusy(false)
         setChainSynced(true)
       }
     },
-    [connection, publicKey, slotAuthorityPk, slotPk],
+    [append, connection, publicKey, slotAuthorityPk, slotPk],
   )
 
   const rankBySceneKeyHex = useMemo(() => {
@@ -269,6 +320,9 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     }
   }, [publicKey])
 
+  /** Wallet / cluster: full chain read. Do not depend on `instantSessionMeta` here — that
+   *  caused `chainSynced` to flip false whenever the instant session was created/restored,
+   *  which disabled Watch thumbs until refresh finished (felt like “need a page reload”). */
   useEffect(() => {
     if (!connected || !publicKey) {
       setChainSynced(false)
@@ -276,7 +330,13 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     }
     setChainSynced(false)
     void refreshOnChain(null)
-  }, [connected, publicKey, instantSessionMeta, refreshOnChain])
+  }, [connected, publicKey, refreshOnChain])
+
+  /** Session wallet appeared or changed: refresh balances / scene merge without clearing `chainSynced`. */
+  useEffect(() => {
+    if (!connected || !publicKey || !instantSessionMeta) return
+    void refreshOnChain(null)
+  }, [connected, publicKey, instantSessionMeta?.ephemeralPk, refreshOnChain])
 
   const instantStakingSessionActive = Boolean(
     instantSessionMeta &&
@@ -315,10 +375,10 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         append(`Closing instant session (${reason})…`)
         const owned = await fetchScenePositionsForOwner(connection, kp.publicKey)
         for (const { data } of owned) {
-          const pos = decodeScenePosition(data)
-          if (pos.amount <= 0n) continue
+          const pos = tryDecodeScenePosition(Buffer.from(data))
+          if (!pos || pos.amount <= 0n) continue
           const sAi = await connection.getAccountInfo(pos.scene)
-          const scene = sAi?.data ? decodeScene(Buffer.from(sAi.data)) : null
+          const scene = sAi?.data ? tryDecodeScene(Buffer.from(sAi.data)) : null
           const sk = scene?.sceneKey
           if (!sk || sk.length !== 32) continue
           await sendAndConfirmWithKeypair(connection, kp, [
@@ -436,6 +496,18 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       if (!publicKey.equals(slotAuth)) {
         throw new Error(
           'Connect the slot authority wallet to initialize (must match VITE_STAKE_SLOT_AUTHORITY when set), or clear that env to use your wallet as authority.',
+        )
+      }
+      const slotAccountPk = slotPda(slotAuth, DEMO_SLOT_ID)
+      const existing = await connection.getAccountInfo(slotAccountPk)
+      if (existing?.data?.length) {
+        if (!existing.owner.equals(PROGRAM_ID)) {
+          throw new Error(
+            `Slot address ${slotAccountPk.toBase58()} is already in use by another program (${existing.owner.toBase58()}). Check VITE_STAKE_TO_CURATE_PROGRAM_ID matches your on-chain deployment.`,
+          )
+        }
+        throw new Error(
+          'Demo slot is already initialized on this cluster. Use “Refresh on-chain state” above; Setup should only run once per slot authority wallet.',
         )
       }
       await sendAndConfirm(
@@ -714,6 +786,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     rankBySceneKeyHex,
     log,
     busy,
+    chainRefreshBusy,
     toast,
     setToast,
     append,

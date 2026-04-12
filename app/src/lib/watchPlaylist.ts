@@ -42,6 +42,30 @@ function cellStakeRank(cell: SceneCell): bigint {
   return 1n
 }
 
+/** Integer sqrt (floor) for bigint — used to soften rank spread for Watch-only picks. */
+function bigintSqrtFloor(n: bigint): bigint {
+  if (n <= 0n) return 0n
+  if (n < 4n) return 1n
+  let x = n
+  let y = (x + 1n) / 2n
+  while (y < x) {
+    x = y
+    y = (x + n / x) / 2n
+  }
+  return x
+}
+
+/**
+ * Watch playback weights for choosing among alternates: still favors higher on-chain rank,
+ * but avoids ~100% picks when one scene has MIN_INITIAL_RANK (1e6) and another uses a small
+ * default — on-chain staking still uses full rank.
+ */
+function watchAlternatePickWeight(rank: bigint): bigint {
+  const r = rank > 0n ? rank : 1n
+  // Floor so a 1_000_000 anchor rank vs a default `1` are not ~1e6:1 in Watch picks.
+  return bigintSqrtFloor(r) + 1000n
+}
+
 /** Dedupe identical playlist builds (React Strict Mode + frequent useMemo). */
 let lastPlaylistDebugDigest = ''
 
@@ -103,7 +127,9 @@ export function buildWatchPlaylist(
 
     let pick: Play
     if (playable.length >= 2) {
-      const trace = sampleWeightedIndexWithTrace(playable.map((p) => p.rank))
+      const trace = sampleWeightedIndexWithTrace(
+        playable.map((p) => watchAlternatePickWeight(p.rank)),
+      )
       const idx = trace.index
       pick = playable[idx]!
       if (debug) {

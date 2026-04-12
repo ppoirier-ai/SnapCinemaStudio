@@ -17,6 +17,7 @@ export function StudioDemoPage() {
   const {
     connected,
     busy,
+    chainRefreshBusy,
     slotPk,
     sceneRows,
     log,
@@ -82,7 +83,8 @@ export function StudioDemoPage() {
             slotPk={slotPk}
             connected={connected}
             busy={busy}
-            onRefresh={() => void refreshOnChain(null)}
+            chainRefreshBusy={chainRefreshBusy}
+            onRefresh={() => void refreshOnChain(null, { log: true })}
           />
           <InitPanel
             demoSlotId={DEMO_SLOT_ID}

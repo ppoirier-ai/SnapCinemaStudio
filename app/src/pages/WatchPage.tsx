@@ -165,6 +165,16 @@ export function WatchPage() {
     void refreshOnChain(playingMovie)
   }, [playingMovie?.id, connected, refreshOnChain, playingMovie])
 
+  /** When the weighted playlist advances to another cell, re-fetch that scene’s on-chain row
+   *  so thumbs enable without a full page reload (merge refresh keeps other keys). */
+  useEffect(() => {
+    if (!playingMovie || !connected || !currentSceneKeyHex) return
+    const t = window.setTimeout(() => {
+      void refreshOnChain(playingMovie)
+    }, 200)
+    return () => window.clearTimeout(t)
+  }, [currentSceneKeyHex, playingMovie, connected, refreshOnChain])
+
   const currentRow = currentSceneKeyHex
     ? getSceneRow(currentSceneKeyHex)
     : undefined
