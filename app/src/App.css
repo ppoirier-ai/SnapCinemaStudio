@@ -1269,6 +1269,73 @@
   justify-content: center;
 }
 
+.watch-yield-boost {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem auto 0;
+  max-width: 42rem;
+  border: 1px solid var(--st-border);
+  border-radius: 0.5rem;
+  background: var(--st-surface-2);
+  font-size: 0.875rem;
+}
+
+.watch-yield-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--st-heading);
+}
+
+.watch-yield-note,
+.watch-yield-estimate {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.watch-yield-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.watch-yield-toggle {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.watch-yield-toggle:disabled + .watch-yield-toggle-label {
+  opacity: 0.5;
+}
+
+.watch-yield-toggle-label {
+  line-height: 1.35;
+  color: var(--st-heading);
+}
+
+.watch-yield-dashboard {
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--st-border);
+  margin-top: 0.25rem;
+}
+
+.watch-yield-dashboard-line {
+  margin: 0.15rem 0;
+  font-size: 0.8125rem;
+}
+
+.watch-yield-withdraw {
+  margin-top: 0.5rem;
+}
+
+.watch-yield-withdraw-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+}
+
 .watch-reaction-bar {
   display: flex;
   justify-content: center;

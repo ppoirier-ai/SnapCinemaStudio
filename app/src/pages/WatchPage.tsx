@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useConnection } from '@solana/wallet-adapter-react'
 import { YoutubeWatchPlayer } from '../components/YoutubeWatchPlayer'
+import { WatchYieldBoostPanel } from '../components/yield/WatchYieldBoostPanel'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import {
   getFirstYoutubeVideoIdFromMovie,
@@ -8,6 +10,7 @@ import {
 } from '../context/SceneBoardContext'
 import { FAN_REACTION_STAKE_LAMPORTS } from '../demo/constants'
 import { lamportsToSol } from '../demo/format'
+import { isMainnetYieldBoostAvailable } from '../yield/cluster'
 import { IconFlag, IconThumbDown, IconThumbUp } from '../components/ReactionIcons'
 import { envYoutubeVideoId, youtubeEmbedSrc } from '../lib/youtubeEmbed'
 import {
@@ -128,12 +131,14 @@ function WatchShortPlayback({
 export function WatchPage() {
   const envEmbed = youtubeEmbedSrc()
   const envVid = envYoutubeVideoId()
+  const { connection } = useConnection()
   const { movies, watchMovieId, setWatchMovieId, getMovie } = useMovies()
   const {
     chainSynced,
     rankBySceneKeyHex,
     busy,
     connected,
+    publicKey,
     signTransaction,
     getSceneRow,
     onStakeUp,
@@ -148,6 +153,9 @@ export function WatchPage() {
     ensureInstantSessionForWatch,
     refreshOnChain,
     slotInitialized,
+    yieldBoostEnabled,
+    setYieldBoostEnabled,
+    onWithdrawYieldBoost,
   } = useDemoSlot()
 
   const playingMovie =
@@ -159,6 +167,17 @@ export function WatchPage() {
   const [currentSceneKeyHex, setCurrentSceneKeyHex] = useState<string | null>(
     null,
   )
+  const [yieldBoostClusterOk, setYieldBoostClusterOk] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void isMainnetYieldBoostAvailable(connection).then((ok) => {
+      if (!cancelled) setYieldBoostClusterOk(ok)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [connection])
 
   useEffect(() => {
     if (!playingMovie || !connected) return
@@ -181,37 +200,49 @@ export function WatchPage() {
   const sceneReady = Boolean(currentRow?.scene)
 
   const slotMissingOnChain = chainSynced && !slotInitialized
+  const yieldBoostBlocksReactions =
+    yieldBoostEnabled &&
+    (!yieldBoostClusterOk ||
+      instantStakingSessionActive ||
+      !signTransaction)
   const reactionsDisabled =
     !connected ||
     busy ||
     !chainSynced ||
     (!signTransaction && !instantStakingSessionActive) ||
     !currentSceneKeyHex ||
-    !sceneReady
+    !sceneReady ||
+    yieldBoostBlocksReactions
 
   const onThumbUp = async () => {
     if (!currentSceneKeyHex) return
-    if (!instantStakingSessionActive) {
-      const ok = await ensureInstantSessionForWatch()
-      if (!ok) return
+    if (!yieldBoostEnabled) {
+      if (!instantStakingSessionActive) {
+        const ok = await ensureInstantSessionForWatch()
+        if (!ok) return
+      }
     }
     void onStakeUp(currentSceneKeyHex, FAN_REACTION_STAKE_LAMPORTS)
   }
 
   const onThumbDown = async () => {
     if (!currentSceneKeyHex) return
-    if (!instantStakingSessionActive) {
-      const ok = await ensureInstantSessionForWatch()
-      if (!ok) return
+    if (!yieldBoostEnabled) {
+      if (!instantStakingSessionActive) {
+        const ok = await ensureInstantSessionForWatch()
+        if (!ok) return
+      }
     }
     void onStakeDown(currentSceneKeyHex, FAN_REACTION_STAKE_LAMPORTS)
   }
 
   const onFlag = async () => {
     if (!currentSceneKeyHex) return
-    if (!instantStakingSessionActive) {
-      const ok = await ensureInstantSessionForWatch()
-      if (!ok) return
+    if (!yieldBoostEnabled) {
+      if (!instantStakingSessionActive) {
+        const ok = await ensureInstantSessionForWatch()
+        if (!ok) return
+      }
     }
     void onStakeDown(currentSceneKeyHex, FAN_REACTION_STAKE_LAMPORTS)
     setToast('Flag sent: stake_down on this scene (devnet).')
@@ -272,6 +303,17 @@ export function WatchPage() {
               authority).
             </p>
           )}
+        {connected && chainSynced && (
+          <WatchYieldBoostPanel
+            connected={connected}
+            publicKey={publicKey}
+            busy={busy}
+            instantStakingSessionActive={instantStakingSessionActive}
+            yieldBoostEnabled={yieldBoostEnabled}
+            setYieldBoostEnabled={setYieldBoostEnabled}
+            onWithdrawYieldBoost={onWithdrawYieldBoost}
+          />
+        )}
         {connected && chainSynced && (
           <div className="watch-instant-session" aria-label="Instant staking session">
             {instantStakingSessionActive && instantSessionMeta ? (

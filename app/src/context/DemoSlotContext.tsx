@@ -52,6 +52,11 @@ import {
   STAKE_RESERVE_LAMPORTS,
   tryRestoreInstantSession,
 } from '../session/instantStakingSession'
+import { isMainnetYieldBoostAvailable } from '../yield/cluster'
+import { YIELD_BOOST_RESERVE_LAMPORTS } from '../yield/constants'
+import { lamportsToSol } from '../demo/format'
+import { runYieldBoostStakeFlow } from '../yield/yieldStake'
+import { runYieldBoostWithdrawAll } from '../yield/yieldWithdraw'
 
 export type SceneChainRow = {
   scene: ReturnType<typeof decodeScene> | null
@@ -108,6 +113,11 @@ type DemoSlotValue = {
   topUpInstantSession: () => void
   endInstantSession: () => void
   ensureInstantSessionForWatch: () => Promise<boolean>
+  /** When true, mainnet reactions mint JitoSOL + Kamino deposit + stake (Phantom only). */
+  yieldBoostEnabled: boolean
+  setYieldBoostEnabled: (v: boolean) => void
+  /** Full exit: Kamino shares → JitoSOL → SOL (mainnet + env gate). */
+  onWithdrawYieldBoost: () => void
 }
 
 const DemoSlotContext = createContext<DemoSlotValue | null>(null)
@@ -188,6 +198,11 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const [instantSessionBalanceLamports, setInstantSessionBalanceLamports] =
     useState<bigint | null>(null)
   const [, setSessionUiTick] = useState(0)
+  const [yieldBoostEnabled, setYieldBoostEnabled] = useState(false)
+  const yieldBoostEnabledRef = useRef(false)
+  useEffect(() => {
+    yieldBoostEnabledRef.current = yieldBoostEnabled
+  }, [yieldBoostEnabled])
 
   const append = useCallback((m: string) => {
     setLog((prev) => [
@@ -574,6 +589,44 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         await finalizeInstantSessionCore('stake_after_expired_session')
       }
       const kp = instantKeypairRef.current
+      const boost = yieldBoostEnabledRef.current
+      if (boost) {
+        if (isInstantSessionUsable() && kp) {
+          setToast(
+            'Yield Boost uses your connected Phantom wallet. End Instant Staking first.',
+          )
+          throw new Error('Yield boost with instant session')
+        }
+        if (!(await isMainnetYieldBoostAvailable(connection))) {
+          setToast(
+            'Yield Boost only runs on Solana mainnet with VITE_ENABLE_YIELD_BOOST=true in your build.',
+          )
+          throw new Error('Yield boost unavailable on this cluster')
+        }
+        if (!publicKey || !signTransaction)
+          throw new Error('Connect wallet first')
+        const walletBal = BigInt(await connection.getBalance(publicKey))
+        const need = lamports * 2n + YIELD_BOOST_RESERVE_LAMPORTS
+        if (walletBal < need) {
+          setToast(
+            `Yield Boost needs about ${lamportsToSol(need)} SOL in Phantom (2× stake + fees).`,
+          )
+          throw new Error('Insufficient SOL for yield boost')
+        }
+        await runYieldBoostStakeFlow({
+          connection,
+          wallet: { publicKey, signTransaction },
+          stakeLamports: lamports,
+          stakeInstruction: discIx(
+            publicKey,
+            slotAuthorityPk,
+            DEMO_SLOT_ID,
+            sk,
+            lamports,
+          ),
+        })
+        return
+      }
       if (isInstantSessionUsable() && kp) {
         const owner = kp.publicKey
         const bal = BigInt(await connection.getBalance(owner))
@@ -629,6 +682,19 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       sceneKeyHexArg,
       lamports,
     )
+
+  const onWithdrawYieldBoost = () =>
+    void run('withdraw_yield_boost', async () => {
+      if (!(await isMainnetYieldBoostAvailable(connection))) {
+        throw new Error('Yield withdraw only on mainnet with VITE_ENABLE_YIELD_BOOST=true')
+      }
+      if (!publicKey || !signTransaction)
+        throw new Error('Connect wallet first')
+      await runYieldBoostWithdrawAll({
+        connection,
+        wallet: { publicKey, signTransaction },
+      })
+    })
 
   const onUnstake = (sceneKeyHexArg: string) =>
     run(`unstake_scene ${sceneKeyHexArg.slice(0, 10)}…`, async () => {
@@ -695,13 +761,16 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       )
     })
 
-  const onDeposit = (_sceneKeyHex: string, _lamports: bigint) => {
+  const onDeposit = (sceneKeyHex: string, lamports: bigint) => {
+    void sceneKeyHex
+    void lamports
     append(
       'Note: deposit_revenue is deferred for per-scene StakeToCurate (MVP — no curator pool yet).',
     )
   }
 
-  const onClaim = (_sceneKeyHex: string) => {
+  const onClaim = (sceneKeyHex: string) => {
+    void sceneKeyHex
     append(
       'Note: claim_curator is deferred for per-scene StakeToCurate (MVP — no curator pool yet).',
     )
@@ -880,6 +949,9 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     topUpInstantSession,
     endInstantSession,
     ensureInstantSessionForWatch,
+    yieldBoostEnabled,
+    setYieldBoostEnabled,
+    onWithdrawYieldBoost,
   }
 
   return (
@@ -887,6 +959,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook colocated with provider
 export function useDemoSlot() {
   const ctx = useContext(DemoSlotContext)
   if (!ctx)
