@@ -25,6 +25,7 @@
     "bs58": "^4.0.1",
     "buffer": "^6.0.3",
     "decimal.js": "^10.6.0",
+    "process": "^0.11.10",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.0"

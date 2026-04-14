@@ -2050,3 +2050,8 @@
 .watch-movie-card:focus-visible .watch-movie-card-thumb-fallback {
   box-shadow: 0 0 0 2px var(--st-accent);
 }
+
+.app-route-loading {
+  padding: 2rem;
+  color: var(--st-body, #c8cad4);
+}

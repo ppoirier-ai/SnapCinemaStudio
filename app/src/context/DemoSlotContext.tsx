@@ -53,9 +53,6 @@ import {
   tryRestoreInstantSession,
 } from '../session/instantStakingSession'
 import { isMainnetYieldBoostAvailable } from '../yield/cluster'
-import { YIELD_BOOST_RESERVE_LAMPORTS } from '../yield/constants'
-import { lamportsToSol } from '../demo/format'
-import { runYieldBoostStakeFlow } from '../yield/yieldStake'
 import { runYieldBoostWithdrawAll } from '../yield/yieldWithdraw'
 
 export type SceneChainRow = {
@@ -113,10 +110,7 @@ type DemoSlotValue = {
   topUpInstantSession: () => void
   endInstantSession: () => void
   ensureInstantSessionForWatch: () => Promise<boolean>
-  /** When true, mainnet reactions mint JitoSOL + Kamino deposit + stake (Phantom only). */
-  yieldBoostEnabled: boolean
-  setYieldBoostEnabled: (v: boolean) => void
-  /** Full exit: Kamino shares → JitoSOL → SOL (mainnet + env gate). */
+  /** Full exit: Kamino shares → JitoSOL → SOL (mainnet + env gate); Studio → Admin only. */
   onWithdrawYieldBoost: () => void
 }
 
@@ -198,11 +192,6 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const [instantSessionBalanceLamports, setInstantSessionBalanceLamports] =
     useState<bigint | null>(null)
   const [, setSessionUiTick] = useState(0)
-  const [yieldBoostEnabled, setYieldBoostEnabled] = useState(false)
-  const yieldBoostEnabledRef = useRef(false)
-  useEffect(() => {
-    yieldBoostEnabledRef.current = yieldBoostEnabled
-  }, [yieldBoostEnabled])
 
   const append = useCallback((m: string) => {
     setLog((prev) => [
@@ -589,44 +578,6 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
         await finalizeInstantSessionCore('stake_after_expired_session')
       }
       const kp = instantKeypairRef.current
-      const boost = yieldBoostEnabledRef.current
-      if (boost) {
-        if (isInstantSessionUsable() && kp) {
-          setToast(
-            'Yield Boost uses your connected Phantom wallet. End Instant Staking first.',
-          )
-          throw new Error('Yield boost with instant session')
-        }
-        if (!(await isMainnetYieldBoostAvailable(connection))) {
-          setToast(
-            'Yield Boost only runs on Solana mainnet with VITE_ENABLE_YIELD_BOOST=true in your build.',
-          )
-          throw new Error('Yield boost unavailable on this cluster')
-        }
-        if (!publicKey || !signTransaction)
-          throw new Error('Connect wallet first')
-        const walletBal = BigInt(await connection.getBalance(publicKey))
-        const need = lamports * 2n + YIELD_BOOST_RESERVE_LAMPORTS
-        if (walletBal < need) {
-          setToast(
-            `Yield Boost needs about ${lamportsToSol(need)} SOL in Phantom (2× stake + fees).`,
-          )
-          throw new Error('Insufficient SOL for yield boost')
-        }
-        await runYieldBoostStakeFlow({
-          connection,
-          wallet: { publicKey, signTransaction },
-          stakeLamports: lamports,
-          stakeInstruction: discIx(
-            publicKey,
-            slotAuthorityPk,
-            DEMO_SLOT_ID,
-            sk,
-            lamports,
-          ),
-        })
-        return
-      }
       if (isInstantSessionUsable() && kp) {
         const owner = kp.publicKey
         const bal = BigInt(await connection.getBalance(owner))
@@ -949,8 +900,6 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     topUpInstantSession,
     endInstantSession,
     ensureInstantSessionForWatch,
-    yieldBoostEnabled,
-    setYieldBoostEnabled,
     onWithdrawYieldBoost,
   }
 

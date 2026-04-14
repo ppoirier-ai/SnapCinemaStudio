@@ -8,6 +8,7 @@ import { PositionsPanel } from '../demo/PositionsPanel'
 import { RevenuePanel } from '../demo/RevenuePanel'
 import { RoleTabs } from '../demo/RoleTabs'
 import type { DemoRole } from '../demo/types'
+import { AdminYieldPanel } from '../components/yield/AdminYieldPanel'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import { DEMO_SLOT_ID } from '../stakeToCurate/client'
 
@@ -23,6 +24,9 @@ export function StudioDemoPage() {
     log,
     refreshOnChain,
     onSetup,
+    publicKey,
+    instantStakingSessionActive,
+    onWithdrawYieldBoost,
   } = useDemoSlot()
 
   const positions = useMemo(
@@ -91,6 +95,13 @@ export function StudioDemoPage() {
             connected={connected}
             busy={busy}
             onSetup={onSetup}
+          />
+          <AdminYieldPanel
+            connected={connected}
+            publicKey={publicKey}
+            busy={busy}
+            instantStakingSessionActive={instantStakingSessionActive}
+            onWithdrawYieldBoost={onWithdrawYieldBoost}
           />
           <LogPanel lines={log} />
         </>

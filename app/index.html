@@ -8,8 +8,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Run before main.tsx so Buffer exists before @kamino-finance/kliquidity-sdk (WatchPage chain). -->
-    <script type="module" src="/src/polyfill-buffer.ts"></script>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/bootstrap.ts"></script>
   </body>
 </html>

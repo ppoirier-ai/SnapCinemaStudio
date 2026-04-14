@@ -28,6 +28,10 @@ On-chain **proof-of-curation** primitive for SnapCinema Studio. Full mechanics a
 
 The Vite app keys the demo slot by `(authority, slot_id)`. For **Watch**, set **`VITE_STAKE_SLOT_AUTHORITY`** in `app/.env` to the **base58 pubkey** of the wallet that will run **Studio → Admin → Initialize** once. Every viewer then uses that same slot for ranks and stakes while signing only as **position owner**. Omit the variable for local solo use (connected wallet is both authority and staker). See `app/.env.example`.
 
+## Vault vs external DeFi (not in this program)
+
+Reaction **stakes** lock **SOL in the program vault** (`vault` PDA). Moving **vault** SOL into JitoSOL, Kamino, or other protocols would require **new** on-chain or custody design (for example authority-signed transfers to a treasury wallet, then an external swap). The Vite app may include **admin-only, wallet-side** Jito/Kamino helpers; those operate on the **connected wallet**, not on automatic withdrawals from the vault.
+
 ## API (Phase 1 — implemented)
 
 | Instruction | Role |

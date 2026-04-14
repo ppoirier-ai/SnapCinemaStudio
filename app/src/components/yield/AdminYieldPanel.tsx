@@ -1,28 +1,28 @@
 import { useConnection } from '@solana/wallet-adapter-react'
 import { useCallback, useEffect, useState } from 'react'
-import { FAN_REACTION_STAKE_LAMPORTS } from '../../demo/constants'
 import { lamportsToSol } from '../../demo/format'
 import { isMainnetYieldBoostAvailable } from '../../yield/cluster'
 import { yieldBoostApyPercent } from '../../yield/constants'
 import { fetchYieldDashboardSnapshot } from '../../yield/yieldDashboard'
+import { FAN_REACTION_STAKE_LAMPORTS } from '../../demo/constants'
 
 type Props = {
   connected: boolean
   publicKey: import('@solana/web3.js').PublicKey | null
   busy: boolean
   instantStakingSessionActive: boolean
-  yieldBoostEnabled: boolean
-  setYieldBoostEnabled: (v: boolean) => void
   onWithdrawYieldBoost: () => void
 }
 
-export function WatchYieldBoostPanel({
+/**
+ * Mainnet JitoSOL / Kamino dashboard and withdraw — **Studio → Admin** only.
+ * Watch reactions use StakeToCurate vault stakes only; this panel does not move vault SOL.
+ */
+export function AdminYieldPanel({
   connected,
   publicKey,
   busy,
   instantStakingSessionActive,
-  yieldBoostEnabled,
-  setYieldBoostEnabled,
   onWithdrawYieldBoost,
 }: Props) {
   const { connection } = useConnection()
@@ -72,50 +72,32 @@ export function WatchYieldBoostPanel({
   const stakeSol = Number(FAN_REACTION_STAKE_LAMPORTS) / 1e9
   const expectedYearSol = stakeSol * (apy / 100)
 
-  const toggleDisabled =
-    !connected || busy || !clusterOk || instantStakingSessionActive
-
   return (
-    <section className="watch-yield-boost" aria-labelledby="watch-yield-heading">
-      <h3 id="watch-yield-heading" className="watch-yield-title">
-        Yield Boost
+    <section className="watch-yield-boost" aria-labelledby="admin-yield-heading">
+      <h3 id="admin-yield-heading" className="watch-yield-title">
+        JitoSOL / Kamino (mainnet, admin)
       </h3>
+      <p className="muted watch-yield-note">
+        Reference APY for optional wallet-side DeFi positions. StakeToCurate reaction SOL
+        locks in the program vault; moving vault funds into JitoSOL/Kamino would need a
+        separate custody or program flow.
+      </p>
       {!clusterOk && (
         <p className="muted watch-yield-note">
-          Available on <strong>mainnet</strong> when{' '}
-          <code>VITE_ENABLE_YIELD_BOOST=true</code>. StakeToCurate can stay on devnet; use a
-          mainnet RPC in <code>.env</code> to try this flow.
+          Connect with <strong>mainnet</strong> and set{' '}
+          <code>VITE_ENABLE_YIELD_BOOST=true</code> to load Kamino metrics and withdraw.
         </p>
       )}
       {clusterOk && instantStakingSessionActive && (
         <p className="muted watch-yield-note">
-          End <strong>Instant Staking</strong> to use Yield Boost (Phantom must sign JitoSOL +
-          Kamino txs).
+          End <strong>Instant Staking</strong> on Watch before signing Kamino withdraw txs
+          here (same Phantom session).
         </p>
       )}
-      <label className="watch-yield-toggle-row">
-        <input
-          type="checkbox"
-          className="watch-yield-toggle"
-          checked={yieldBoostEnabled}
-          disabled={toggleDisabled}
-          onChange={(e) => setYieldBoostEnabled(e.target.checked)}
-        />
-        <span className="watch-yield-toggle-label">
-          Boost yield to 7.5–8.5% with JitoSOL + Kamino
-        </span>
-      </label>
-      {yieldBoostEnabled && clusterOk && (
+      {clusterOk && (
         <p className="muted watch-yield-estimate">
-          Est. APY ~{apy}% · Expected yearly on {lamportsToSol(FAN_REACTION_STAKE_LAMPORTS)} SOL
-          stake: ~{expectedYearSol.toFixed(5)} SOL (not a guarantee; smart-contract and market
-          risk).
-        </p>
-      )}
-      {yieldBoostEnabled && clusterOk && (
-        <p className="muted watch-yield-note">
-          Uses <strong>2×</strong> the reaction stake in Phantom for one vote: one leg mints
-          JitoSOL + Kamino, the other stakes SOL in SnapCinema (on-chain program unchanged).
+          Reference ~{apy}% APY · Illustrative yearly on {lamportsToSol(FAN_REACTION_STAKE_LAMPORTS)}{' '}
+          SOL notional: ~{expectedYearSol.toFixed(5)} SOL (not a guarantee; market risk).
         </p>
       )}
       {clusterOk && publicKey && (
@@ -140,10 +122,10 @@ export function WatchYieldBoostPanel({
             disabled={!connected || busy || !clusterOk}
             onClick={() => onWithdrawYieldBoost()}
           >
-            Withdraw anytime
+            Withdraw from Kamino path
           </button>
           <p className="muted watch-yield-withdraw-hint">
-            Unstakes Kamino → JitoSOL → SOL in two steps; you may sign twice in Phantom.
+            Unstakes Kamino → JitoSOL → SOL; you may sign twice in Phantom.
           </p>
         </div>
       )}
