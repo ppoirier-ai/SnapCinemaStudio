@@ -4,42 +4,26 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { extractYoutubeVideoId } from '../lib/youtubeUrl'
+import {
+  loadRemoteSceneBoardRows,
+  mergeRemoteSceneBoardRows,
+  pushSceneBoardForWallet,
+  sceneBoardCloudConfigured,
+  sceneBoardPublisherWallet,
+} from '../storage/sceneBoardCloud'
+import { readLocalMeta, writeLocalMeta } from '../storage/sceneBoardMeta'
+import type { Movie, MoviesUIState, SceneColumn } from '../storage/sceneBoardModel'
+
+export type { Movie, MoviesUIState, SceneColumn, SceneCell } from '../storage/sceneBoardModel'
 
 const STORAGE_KEY = 'snapcinema-movies-v2'
 const LEGACY_KEY = 'snapcinema-scene-board-v1'
-
-export type SceneCell = {
-  id: string
-  youtubeUrl: string | null
-  /** Stake weight for weighted alternative selection (stringified bigint in JSON). */
-  rank?: string
-}
-export type SceneColumn = { id: string; cells: SceneCell[] }
-
-export type Movie = {
-  id: string
-  creatorWallet: string
-  title: string
-  description: string
-  projectConceptLocked: boolean
-  columns: SceneColumn[]
-  createdAt: number
-}
-
-export type MoviesUIState = {
-  movies: Movie[]
-  /** Scenes tab: which movie’s matrix is shown */
-  selectedMovieId: string | null
-  /** Creator tab: which concept is being edited */
-  creatorSelectedMovieId: string | null
-  /** Watch page: main embed + highlight in list */
-  watchMovieId: string | null
-}
 
 function newId() {
   return crypto.randomUUID()
@@ -154,6 +138,7 @@ function legacyToMovie(legacy: LegacyBoard, creatorWallet: string): Movie {
 function persist(state: MoviesUIState) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    writeLocalMeta({ lastLocalWriteMs: Date.now() })
   } catch {
     /* quota */
   }
@@ -210,8 +195,10 @@ type MoviesContextValue = {
 const MoviesContext = createContext<MoviesContextValue | null>(null)
 
 export function SceneBoardProvider({ children }: { children: ReactNode }) {
-  const { publicKey } = useWallet()
+  const { publicKey, signMessage } = useWallet()
   const wallet = publicKey?.toBase58() ?? null
+  const cloudHydratedKey = useRef<string | null>(null)
+  const cloudPushTimer = useRef<number | null>(null)
 
   const [state, setState] = useState<MoviesUIState>(() => {
     const v2 = loadV2()
@@ -233,6 +220,36 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
   })
 
   const [legacyDone, setLegacyDone] = useState(false)
+
+  useEffect(() => {
+    if (!sceneBoardCloudConfigured() || !wallet) return
+    const publisher = sceneBoardPublisherWallet()
+    const targets: string[] = []
+    if (publisher) targets.push(publisher)
+    if (!targets.includes(wallet)) targets.push(wallet)
+    const key = targets.sort().join('|')
+    if (cloudHydratedKey.current === key) return
+    cloudHydratedKey.current = key
+
+    let cancelled = false
+    void (async () => {
+      const remotes = await loadRemoteSceneBoardRows(targets)
+      if (cancelled || remotes.length === 0) return
+      setState((s) => {
+        const meta = readLocalMeta()
+        const merged = mergeRemoteSceneBoardRows(
+          s,
+          meta.lastLocalWriteMs,
+          remotes,
+        )
+        persist(merged)
+        return merged
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [wallet])
 
   useEffect(() => {
     if (!wallet || legacyDone) return
@@ -265,6 +282,18 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
     const t = window.setTimeout(() => persist(state), 250)
     return () => window.clearTimeout(t)
   }, [state])
+
+  useEffect(() => {
+    if (!sceneBoardCloudConfigured() || !wallet) return
+    if (cloudPushTimer.current) window.clearTimeout(cloudPushTimer.current)
+    cloudPushTimer.current = window.setTimeout(() => {
+      cloudPushTimer.current = null
+      void pushSceneBoardForWallet(wallet, state, signMessage)
+    }, 2500)
+    return () => {
+      if (cloudPushTimer.current) window.clearTimeout(cloudPushTimer.current)
+    }
+  }, [state, wallet, signMessage])
 
   const movieIdsKey = useMemo(
     () => state.movies.map((m) => m.id).join('|'),
