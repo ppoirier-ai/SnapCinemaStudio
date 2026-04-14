@@ -14,4 +14,8 @@ export default defineConfig({
       buffer: 'buffer',
     },
   },
+  optimizeDeps: {
+    /** Ensure the npm `buffer` package is prebundled (avoids "externalized" browser breakage). */
+    include: ['buffer'],
+  },
 })

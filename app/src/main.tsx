@@ -1,4 +1,4 @@
-import { Buffer } from 'buffer'
+import './polyfill-buffer'
 import { StrictMode, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -11,8 +11,6 @@ import '@solana/wallet-adapter-react-ui/styles.css'
 import './index.css'
 import App from './App.tsx'
 import { DEFAULT_RPC } from './stakeToCurate/client'
-
-Object.assign(globalThis, { Buffer })
 
 function Root() {
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [])
