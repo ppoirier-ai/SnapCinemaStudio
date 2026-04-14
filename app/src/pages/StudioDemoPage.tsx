@@ -27,6 +27,7 @@ export function StudioDemoPage() {
     publicKey,
     instantStakingSessionActive,
     onWithdrawYieldBoost,
+    onConfigureYieldTreasury,
   } = useDemoSlot()
 
   const positions = useMemo(
@@ -102,6 +103,7 @@ export function StudioDemoPage() {
             busy={busy}
             instantStakingSessionActive={instantStakingSessionActive}
             onWithdrawYieldBoost={onWithdrawYieldBoost}
+            onConfigureYieldTreasury={onConfigureYieldTreasury}
           />
           <LogPanel lines={log} />
         </>

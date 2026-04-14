@@ -12,6 +12,7 @@ type Props = {
   busy: boolean
   instantStakingSessionActive: boolean
   onWithdrawYieldBoost: () => void
+  onConfigureYieldTreasury: () => void
 }
 
 /**
@@ -24,6 +25,7 @@ export function AdminYieldPanel({
   busy,
   instantStakingSessionActive,
   onWithdrawYieldBoost,
+  onConfigureYieldTreasury,
 }: Props) {
   const { connection } = useConnection()
   const [clusterOk, setClusterOk] = useState(false)
@@ -78,10 +80,24 @@ export function AdminYieldPanel({
         JitoSOL / Kamino (mainnet, admin)
       </h3>
       <p className="muted watch-yield-note">
-        Reference APY for optional wallet-side DeFi positions. StakeToCurate reaction SOL
-        locks in the program vault; moving vault funds into JitoSOL/Kamino would need a
-        separate custody or program flow.
+        Surplus vault SOL (above tracked principal) can be swept to a configured yield
+        treasury; run the <code>immediate-yield-worker</code> script with the same
+        keypair. See <code>docs/vault-yield-pool-plan.md</code>.
       </p>
+      {connected && publicKey && (
+        <p className="muted watch-yield-note">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={busy}
+            onClick={() => onConfigureYieldTreasury()}
+          >
+            Set yield treasury to this wallet
+          </button>{' '}
+          (slot authority only — one-time; use this keypair for the immediate-yield worker on
+          mainnet.)
+        </p>
+      )}
       {!clusterOk && (
         <p className="muted watch-yield-note">
           Connect with <strong>mainnet</strong> and set{' '}

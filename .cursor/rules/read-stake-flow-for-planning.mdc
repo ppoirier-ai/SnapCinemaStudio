@@ -1,0 +1,11 @@
+---
+description: Planning or changing staking economy — read docs/stake-curation-flow.md first
+alwaysApply: true
+---
+
+# Stake-to-curate reference
+
+Before **planning** or **implementing** changes to **StakeToCurate**, **Watch** stakes or unstakes, **`DemoSlotContext`**, **vault** custody vs **wallet** DeFi, or **admin** slot/scene setup:
+
+1. Read **`docs/stake-curation-flow.md`** (source of truth; update it when behavior changes).
+2. See **`programs/stake_to_curate/README.md`** for program-level vault and env notes.

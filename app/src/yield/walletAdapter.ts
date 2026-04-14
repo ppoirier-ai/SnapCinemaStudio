@@ -1,4 +1,9 @@
-import { PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
+import {
+  Keypair,
+  PublicKey,
+  Transaction,
+  VersionedTransaction,
+} from '@solana/web3.js'
 
 export type YieldWallet = {
   publicKey: PublicKey
@@ -17,6 +22,21 @@ export function legacySigningWallet(wallet: YieldWallet) {
         throw new Error('Expected a legacy Transaction from the wallet adapter')
       }
       return out
+    },
+  }
+}
+
+/** Automation / worker path — no Phantom; uses a local {@link Keypair}. */
+export function keypairYieldWallet(keypair: Keypair): YieldWallet {
+  return {
+    publicKey: keypair.publicKey,
+    signTransaction: async (tx: Transaction | VersionedTransaction) => {
+      if (tx instanceof VersionedTransaction) {
+        tx.sign([keypair])
+        return tx
+      }
+      tx.partialSign(keypair)
+      return tx
     },
   }
 }

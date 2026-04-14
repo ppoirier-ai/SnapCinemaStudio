@@ -1,5 +1,19 @@
 import { PublicKey } from '@solana/web3.js'
 
+function readViteEnv(name: string): string | undefined {
+  const im =
+    typeof import.meta !== 'undefined'
+      ? (import.meta as ImportMeta & { env?: Record<string, string> }).env
+      : undefined
+  const fromVite = im?.[name]
+  if (fromVite != null && String(fromVite).trim() !== '') return String(fromVite)
+  if (typeof process !== 'undefined') {
+    const p = process.env[name]
+    if (p != null && String(p).trim() !== '') return String(p)
+  }
+  return undefined
+}
+
 /** Solana mainnet genesis hash (used with RPC to detect cluster). */
 export const MAINNET_GENESIS_HASH =
   '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d'
@@ -26,7 +40,11 @@ export const DEFAULT_KAMINO_JITOSOL_SOL_STRATEGY_MAINNET = new PublicKey(
 )
 
 export function kaminoJitosolSolStrategyFromEnv(): PublicKey {
-  const raw = import.meta.env.VITE_KAMINO_JITOSOL_SOL_STRATEGY
+  const raw =
+    readViteEnv('VITE_KAMINO_JITOSOL_SOL_STRATEGY') ??
+    (typeof process !== 'undefined'
+      ? process.env.KAMINO_JITOSOL_SOL_STRATEGY
+      : undefined)
   if (raw == null || String(raw).trim() === '') {
     return DEFAULT_KAMINO_JITOSOL_SOL_STRATEGY_MAINNET
   }
@@ -35,7 +53,7 @@ export function kaminoJitosolSolStrategyFromEnv(): PublicKey {
 
 /** Midpoint of the 7.5%–8.5% product band for UI estimates (overridable). */
 export function yieldBoostApyPercent(): number {
-  const raw = import.meta.env.VITE_YIELD_BOOST_APY_PERCENT
+  const raw = readViteEnv('VITE_YIELD_BOOST_APY_PERCENT')
   if (raw == null || String(raw).trim() === '') return 8
   const n = Number.parseFloat(String(raw).trim())
   return Number.isFinite(n) && n > 0 ? n : 8

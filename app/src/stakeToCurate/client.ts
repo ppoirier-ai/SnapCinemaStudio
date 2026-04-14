@@ -11,13 +11,44 @@ import {
   clusterApiUrl,
 } from '@solana/web3.js'
 
-export const PROGRAM_ID = new PublicKey(
-  import.meta.env.VITE_STAKE_TO_CURATE_PROGRAM_ID ??
-    'UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su',
-)
+/** Vite (`import.meta.env`) or Node (`process.env`) — workers must not assume `import.meta.env` exists. */
+function readViteEnv(name: string): string | undefined {
+  const im =
+    typeof import.meta !== 'undefined'
+      ? (import.meta as ImportMeta & { env?: Record<string, string> }).env
+      : undefined
+  const fromVite = im?.[name]
+  if (fromVite != null && String(fromVite).trim() !== '') return String(fromVite)
+  if (typeof process !== 'undefined') {
+    const p = process.env[name]
+    if (p != null && String(p).trim() !== '') return String(p)
+  }
+  return undefined
+}
+
+function stakeProgramIdString(): string {
+  const vite =
+    typeof import.meta !== 'undefined' && import.meta.env
+      ? import.meta.env.VITE_STAKE_TO_CURATE_PROGRAM_ID
+      : undefined
+  const proc =
+    typeof process !== 'undefined'
+      ? process.env.VITE_STAKE_TO_CURATE_PROGRAM_ID ??
+        process.env.STAKE_TO_CURATE_PROGRAM_ID
+      : undefined
+  return (
+    (vite && String(vite).trim()) ||
+    (proc && String(proc).trim()) ||
+    'UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su'
+  )
+}
+
+export const PROGRAM_ID = new PublicKey(stakeProgramIdString())
 
 /** Anchor `sha256("global:<name>")[0..8]` (from IDL after `anchor build`). */
 const IX = {
+  configure_yield_treasury: Buffer.from('b31594d8b9c5386e', 'hex'),
+  crank_sweep_yield_pool: Buffer.from('209afefc57307591', 'hex'),
   initialize_slot: Buffer.from('970d156baf7b30c6', 'hex'),
   register_scene: Buffer.from('abe29d5dd65a2c4a', 'hex'),
   stake_scene_up: Buffer.from('37827a136859a9e8', 'hex'),
@@ -26,12 +57,58 @@ const IX = {
   reset_scene_rank: Buffer.from('588f697e50fc4522', 'hex'),
 } as const
 
+/** 8-byte Anchor discriminator + `Slot` account body (see `target/idl/stake_to_curate.json`). */
+export const SLOT_ACCOUNT_DATA_LEN = 147
+
+export function decodeSlot(data: Buffer) {
+  if (data.length < SLOT_ACCOUNT_DATA_LEN) {
+    throw new RangeError(
+      `Slot account buffer too short: ${data.length} (need ${SLOT_ACCOUNT_DATA_LEN})`,
+    )
+  }
+  let p = 8
+  const authority = new PublicKey(data.subarray(p, p + 32))
+  p += 32
+  const creator = new PublicKey(data.subarray(p, p + 32))
+  p += 32
+  const platform = new PublicKey(data.subarray(p, p + 32))
+  p += 32
+  const slotId = data.readUInt8(p)
+  p += 1
+  const bump = data.readUInt8(p)
+  p += 1
+  const vaultBump = data.readUInt8(p)
+  p += 1
+  const totalPrincipalLocked = readU64LE(data, p)
+  p += 8
+  const yieldTreasury = new PublicKey(data.subarray(p, p + 32))
+  return {
+    authority,
+    creator,
+    platform,
+    slotId,
+    bump,
+    vaultBump,
+    totalPrincipalLocked,
+    yieldTreasury,
+  }
+}
+
+export function tryDecodeSlot(data: Buffer | undefined) {
+  if (!data || data.length < SLOT_ACCOUNT_DATA_LEN) return null
+  try {
+    return decodeSlot(data)
+  } catch {
+    return null
+  }
+}
+
 export const DEFAULT_RPC =
-  import.meta.env.VITE_SOLANA_RPC ?? clusterApiUrl('devnet')
+  readViteEnv('VITE_SOLANA_RPC') ?? clusterApiUrl('devnet')
 
 /** On-chain `slot_id` (0–255). Increase `VITE_DEMO_SLOT_ID` in `.env` for a fresh slot (empty stakes) with the same authority wallet. */
 function demoSlotIdFromEnv(): number {
-  const raw = import.meta.env.VITE_DEMO_SLOT_ID
+  const raw = readViteEnv('VITE_DEMO_SLOT_ID')
   if (raw == null || String(raw).trim() === '') return 0
   const n = Number.parseInt(String(raw).trim(), 10)
   if (!Number.isFinite(n) || n < 0 || n > 255) {
@@ -50,7 +127,7 @@ export const DEMO_SLOT_ID = demoSlotIdFromEnv()
  * wallet is both authority and staker (solo dev).
  */
 export function stakeSlotAuthorityFromEnv(): PublicKey | null {
-  const raw = import.meta.env.VITE_STAKE_SLOT_AUTHORITY
+  const raw = readViteEnv('VITE_STAKE_SLOT_AUTHORITY')
   if (raw == null || String(raw).trim() === '') return null
   try {
     return new PublicKey(String(raw).trim())
@@ -345,7 +422,7 @@ function stakeSceneIx(
     programId: PROGRAM_ID,
     keys: [
       { pubkey: owner, isSigner: true, isWritable: true },
-      { pubkey: slot, isSigner: false, isWritable: false },
+      { pubkey: slot, isSigner: false, isWritable: true },
       { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vault, isSigner: false, isWritable: true },
@@ -370,13 +447,55 @@ export function ixUnstakeScene(
     programId: PROGRAM_ID,
     keys: [
       { pubkey: owner, isSigner: true, isWritable: true },
-      { pubkey: slot, isSigner: false, isWritable: false },
+      { pubkey: slot, isSigner: false, isWritable: true },
       { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: position, isSigner: false, isWritable: true },
       { pubkey: vault, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ],
     data: IX.unstake_scene,
+  })
+}
+
+export function ixConfigureYieldTreasury(
+  authority: PublicKey,
+  slotId: number,
+  yieldTreasury: PublicKey,
+): TransactionInstruction {
+  const slot = slotPda(authority, slotId)
+  const data = Buffer.concat([
+    IX.configure_yield_treasury,
+    yieldTreasury.toBuffer(),
+  ])
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: slot, isSigner: false, isWritable: true },
+    ],
+    data,
+  })
+}
+
+/** Permissionless crank; fee payer is usually the automation keypair. */
+export function ixCrankSweepYieldPool(
+  authorityForSlot: PublicKey,
+  slotId: number,
+  yieldTreasury: PublicKey,
+  amountLamports: bigint,
+): TransactionInstruction {
+  const slot = slotPda(authorityForSlot, slotId)
+  const vault = vaultPda(slot)
+  const data = Buffer.concat([IX.crank_sweep_yield_pool, u64le(amountLamports)])
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys: [
+      { pubkey: slot, isSigner: false, isWritable: false },
+      { pubkey: vault, isSigner: false, isWritable: true },
+      { pubkey: yieldTreasury, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ],
+    data,
   })
 }
 

@@ -20,6 +20,7 @@ import {
   fetchScenePositionsForOwner,
   tryDecodeScene,
   tryDecodeScenePosition,
+  ixConfigureYieldTreasury,
   ixInitializeSlot,
   ixRegisterScene,
   ixResetSceneRank,
@@ -112,6 +113,8 @@ type DemoSlotValue = {
   ensureInstantSessionForWatch: () => Promise<boolean>
   /** Full exit: Kamino shares → JitoSOL → SOL (mainnet + env gate); Studio → Admin only. */
   onWithdrawYieldBoost: () => void
+  /** Slot authority: set on-chain yield treasury pubkey (use automation wallet for workers). */
+  onConfigureYieldTreasury: () => void
 }
 
 const DemoSlotContext = createContext<DemoSlotValue | null>(null)
@@ -647,6 +650,22 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       })
     })
 
+  const onConfigureYieldTreasury = () =>
+    void run('configure_yield_treasury', async () => {
+      if (!slotAuthorityPk) throw new Error('Missing slot authority')
+      if (!publicKey || !signTransaction)
+        throw new Error('Connect wallet first')
+      if (!publicKey.equals(slotAuthorityPk)) {
+        throw new Error(
+          'Only the slot authority wallet can set the yield treasury (match VITE_STAKE_SLOT_AUTHORITY or use solo dev wallet).',
+        )
+      }
+      await sendAndConfirm(connection, { publicKey, signTransaction }, [
+        ixConfigureYieldTreasury(publicKey, DEMO_SLOT_ID, publicKey),
+      ])
+      append('OK: yield treasury set to this wallet (use same keypair for the immediate-yield worker).')
+    })
+
   const onUnstake = (sceneKeyHexArg: string) =>
     run(`unstake_scene ${sceneKeyHexArg.slice(0, 10)}…`, async () => {
       if (!slotAuthorityPk) throw new Error('Missing slot authority')
@@ -901,6 +920,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     endInstantSession,
     ensureInstantSessionForWatch,
     onWithdrawYieldBoost,
+    onConfigureYieldTreasury,
   }
 
   return (

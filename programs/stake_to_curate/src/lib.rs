@@ -3,6 +3,7 @@ use anchor_lang::solana_program::{
     hash::hash,
     program::{invoke, invoke_signed},
     system_instruction,
+    sysvar::{rent::Rent, Sysvar},
 };
 
 declare_id!("UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su");
@@ -34,6 +35,52 @@ pub mod stake_to_curate {
         slot.slot_id = slot_id;
         slot.bump = ctx.bumps.slot;
         slot.vault_bump = ctx.bumps.vault;
+        slot.total_principal_locked = 0;
+        slot.yield_treasury = Pubkey::default();
+        Ok(())
+    }
+
+    /// Authority sets where surplus vault SOL is sent for automated yield routing.
+    pub fn configure_yield_treasury(
+        ctx: Context<ConfigureYieldTreasury>,
+        treasury: Pubkey,
+    ) -> Result<()> {
+        require!(treasury != Pubkey::default(), ErrorCode::ZeroAmount);
+        ctx.accounts.slot.yield_treasury = treasury;
+        Ok(())
+    }
+
+    /// Permissionless: sweep up to `amount` lamports to `yield_treasury` if vault retains
+    /// rent + `total_principal_locked`.
+    pub fn crank_sweep_yield_pool(ctx: Context<CrankSweepYieldPool>, amount: u64) -> Result<()> {
+        require!(amount > 0, ErrorCode::ZeroAmount);
+        let slot = &ctx.accounts.slot;
+        require!(
+            slot.yield_treasury != Pubkey::default(),
+            ErrorCode::TreasuryNotConfigured
+        );
+        require_keys_eq!(
+            ctx.accounts.yield_treasury.key(),
+            slot.yield_treasury,
+            ErrorCode::WrongTreasury
+        );
+
+        let vault_info = ctx.accounts.vault.to_account_info();
+        let rent = Rent::get()?;
+        let min_vault = rent.minimum_balance(vault_info.data_len());
+        let vault_lamports = vault_info.lamports();
+        let max_sweep = vault_lamports
+            .saturating_sub(slot.total_principal_locked)
+            .saturating_sub(min_vault);
+        require!(amount <= max_sweep, ErrorCode::InsufficientSweepable);
+
+        transfer_from_vault(
+            &vault_info,
+            &ctx.accounts.yield_treasury.to_account_info(),
+            slot,
+            amount,
+            &ctx.accounts.system_program.to_account_info(),
+        )?;
         Ok(())
     }
 
@@ -68,7 +115,12 @@ pub mod stake_to_curate {
         require!(amt > 0, ErrorCode::NothingToUnstake);
 
         let scene = &mut ctx.accounts.scene;
-        let slot = &ctx.accounts.slot;
+        let slot = &mut ctx.accounts.slot;
+
+        slot.total_principal_locked = slot
+            .total_principal_locked
+            .checked_sub(amt)
+            .ok_or(ErrorCode::MathOverflow)?;
 
         transfer_from_vault(
             &ctx.accounts.vault.to_account_info(),
@@ -116,6 +168,7 @@ fn stake_scene_internal(ctx: Context<PlaceStakeScene>, amount: u64, is_up: bool)
 
     let scene = &mut ctx.accounts.scene;
     let position = &mut ctx.accounts.position;
+    let slot = &mut ctx.accounts.slot;
 
     if position.owner == Pubkey::default() {
         position.owner = ctx.accounts.owner.key();
@@ -140,6 +193,11 @@ fn stake_scene_internal(ctx: Context<PlaceStakeScene>, amount: u64, is_up: bool)
             ctx.accounts.system_program.to_account_info(),
         ],
     )?;
+
+    slot.total_principal_locked = slot
+        .total_principal_locked
+        .checked_add(amount)
+        .ok_or(ErrorCode::MathOverflow)?;
 
     let rd = rank_delta(amount)?;
     if is_up {
@@ -218,6 +276,10 @@ pub struct Slot {
     pub slot_id: u8,
     pub bump: u8,
     pub vault_bump: u8,
+    /// Sum of active position principal owed from the vault.
+    pub total_principal_locked: u64,
+    /// Surplus above principal may be swept to this account via `crank_sweep_yield_pool`.
+    pub yield_treasury: Pubkey,
 }
 
 #[account]
@@ -300,6 +362,7 @@ pub struct RegisterScene<'info> {
 pub struct PlaceStakeScene<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
+    #[account(mut)]
     pub slot: Account<'info, Slot>,
     #[account(mut, constraint = scene.slot == slot.key() @ ErrorCode::SlotMismatch)]
     pub scene: Account<'info, Scene>,
@@ -324,6 +387,7 @@ pub struct PlaceStakeScene<'info> {
 pub struct UnstakeSceneAccounts<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
+    #[account(mut)]
     pub slot: Account<'info, Slot>,
     #[account(mut, constraint = scene.slot == slot.key() @ ErrorCode::SlotMismatch)]
     pub scene: Account<'info, Scene>,
@@ -340,6 +404,32 @@ pub struct UnstakeSceneAccounts<'info> {
         bump = slot.vault_bump
     )]
     pub vault: Account<'info, StakeVault>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ConfigureYieldTreasury<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        constraint = slot.authority == authority.key() @ ErrorCode::Unauthorized
+    )]
+    pub slot: Account<'info, Slot>,
+}
+
+#[derive(Accounts)]
+pub struct CrankSweepYieldPool<'info> {
+    pub slot: Account<'info, Slot>,
+    #[account(
+        mut,
+        seeds = [b"vault", slot.key().as_ref()],
+        bump = slot.vault_bump
+    )]
+    pub vault: Account<'info, StakeVault>,
+    /// CHECK: must match `slot.yield_treasury`
+    #[account(mut)]
+    pub yield_treasury: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -397,4 +487,10 @@ pub enum ErrorCode {
     MathOverflow,
     #[msg("Down stake would push scene rank below its floor")]
     DownStakeRankFloor,
+    #[msg("Yield treasury not configured")]
+    TreasuryNotConfigured,
+    #[msg("Not enough surplus in vault to sweep")]
+    InsufficientSweepable,
+    #[msg("Yield treasury account does not match slot")]
+    WrongTreasury,
 }

@@ -28,20 +28,23 @@ On-chain **proof-of-curation** primitive for SnapCinema Studio. Full mechanics a
 
 The Vite app keys the demo slot by `(authority, slot_id)`. For **Watch**, set **`VITE_STAKE_SLOT_AUTHORITY`** in `app/.env` to the **base58 pubkey** of the wallet that will run **Studio → Admin → Initialize** once. Every viewer then uses that same slot for ranks and stakes while signing only as **position owner**. Omit the variable for local solo use (connected wallet is both authority and staker). See `app/.env.example`.
 
-## Vault vs external DeFi (not in this program)
+## Vault vs external DeFi
 
-Reaction **stakes** lock **SOL in the program vault** (`vault` PDA). Moving **vault** SOL into JitoSOL, Kamino, or other protocols would require **new** on-chain or custody design (for example authority-signed transfers to a treasury wallet, then an external swap). The Vite app may include **admin-only, wallet-side** Jito/Kamino helpers; those operate on the **connected wallet**, not on automatic withdrawals from the vault.
+Reaction **stakes** lock **SOL in the program vault** (`vault` PDA). **`total_principal_locked`** tracks user principal owed from the vault. **Surplus** lamports (vault balance minus principal minus rent) may be moved to a configured **`yield_treasury`** via **`crank_sweep_yield_pool`** (permissionless). The repo’s **`immediate-yield-worker`** (see `app/scripts/immediate-yield-worker.ts` and `docs/vault-yield-pool-plan.md`) signs with that treasury keypair and runs JitoSOL → Kamino off-wallet.
 
 ## API (Phase 1 — implemented)
 
 | Instruction | Role |
 |-------------|------|
-| `initialize_slot` | Authority + creator + platform pubkeys; creates **slot** PDA + **vault** PDA. |
-| `register_version` | Authority adds a **version** under a slot (initial rank; v0 floored to ≥ 1_000_000). |
-| `stake_up` / `stake_down` | Lock SOL in vault; **stake_up** adds `amount` to **rank**, **stake_down** subtracts it (floored: v0 ≥ 1_000_000, v1 ≥ 1); open position with `entry_rank` snapshot (same user/version is **one** side). |
-| `unstake` | Return principal; remove active rank; add **~1%** min-1-lamport **residual** rank. |
-| `deposit_revenue` | **20%** creator, **10%** platform, **70%** split across **remaining** `Position` accounts for that version (weights: spec delta × bonding × active/residual). |
-| `claim_curator` | Pay `accrued_rewards` from vault to owner. |
+| `initialize_slot` | Authority + creator + platform pubkeys; creates **slot** PDA + **vault** PDA; initializes `total_principal_locked = 0`, `yield_treasury = default`. |
+| `configure_yield_treasury` | Authority sets **yield_treasury** pubkey (rejects default). |
+| `crank_sweep_yield_pool` | Permissionless: transfer up to `amount` from vault → `yield_treasury` if vault retains rent + `total_principal_locked`. |
+| `register_scene` | Authority registers a **scene** under a slot (`scene_key`, initial rank). |
+| `stake_scene_up` / `stake_scene_down` | Lock SOL in vault; update rank; increment **`total_principal_locked`** by `amount`. |
+| `unstake_scene` | Return principal; decrement **`total_principal_locked`**; residual rank rules. |
+| `reset_scene_rank` | Authority-only rank reset (no lamport movement). |
+| `deposit_revenue` | *(Spec; not in slim demo `lib.rs`.)* **20%** creator, **10%** platform, **70%** curators. |
+| `claim_curator` | *(Spec.)* Pay accrued rewards. |
 
 **Not in Phase 1:** `sweep_stale` / 90-day dust — see [`docs/project-description.md`](../../docs/project-description.md).
 

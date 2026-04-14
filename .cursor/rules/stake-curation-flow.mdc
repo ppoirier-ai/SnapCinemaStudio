@@ -1,0 +1,15 @@
+---
+description: Before changing staking, Watch reactions, or StakeToCurate program — read docs/stake-curation-flow.md
+globs: app/src/context/DemoSlotContext.tsx,app/src/pages/WatchPage.tsx,app/src/stakeToCurate/**,programs/stake_to_curate/**,app/src/components/yield/**,docs/stake-curation-flow.md
+alwaysApply: false
+---
+
+# StakeToCurate flow context
+
+When planning or editing anything that touches **fan stakes**, **unstakes**, **instant session**, **Watch** thumbs, or the **Anchor program** `stake_to_curate`:
+
+1. **Read** `docs/stake-curation-flow.md` first (vault vs wallet, admin one-time setup, up/down/unstake semantics).
+2. **Update that doc** if you change behavior, env vars, or admin/fan responsibilities.
+3. Do **not** assume vault SOL is moved to Kamino/Jito without an explicit new custody or program design (see program README).
+
+For **broad product planning** (not file-scoped), still open `docs/stake-curation-flow.md` so plan mode does not contradict the documented flow.
