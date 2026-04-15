@@ -1,4 +1,4 @@
-import { verify } from '@noble/ed25519'
+import { verifyAsync } from '@noble/ed25519'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { PublicKey } from '@solana/web3.js'
@@ -176,7 +176,7 @@ export default async function handler(
     }
 
     const msgBytes = Buffer.from(message, 'utf8')
-    const ok = await verify(sig, msgBytes, pub.toBytes())
+    const ok = await verifyAsync(sig, msgBytes, pub.toBytes())
     if (!ok) {
       res.status(401).json({ error: 'Signature verification failed' })
       return
