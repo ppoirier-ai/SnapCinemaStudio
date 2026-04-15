@@ -1,7 +1,15 @@
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type SyntheticEvent,
+} from 'react'
 import { Navigate } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletModalButton } from '@solana/wallet-adapter-react-ui'
 import { AppHeader } from '../components/AppHeader'
+
+const BANNER_VIDEO = '/banner.mp4'
 
 function LandingWalletCta({ id }: { id?: string }) {
   return (
@@ -18,15 +26,60 @@ function LandingWalletCta({ id }: { id?: string }) {
 
 export function LandingPage() {
   const { connected } = useWallet()
+  const [videoReady, setVideoReady] = useState(false)
+  const [videoAllowed, setVideoAllowed] = useState(true)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setVideoAllowed(!mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  const handleVideoCanPlayThrough = useCallback(
+    async (e: SyntheticEvent<HTMLVideoElement>) => {
+      if (!videoAllowed) return
+      const el = e.currentTarget
+      try {
+        await el.play()
+        setVideoReady(true)
+      } catch {
+        /* autoplay blocked or playback error — keep poster */
+      }
+    },
+    [videoAllowed],
+  )
 
   if (connected) return <Navigate to="/watch" replace />
 
   return (
     <div className="landing">
       <AppHeader variant="public" />
-      <main className="landing-main">
-        <section className="landing-hero" aria-labelledby="landing-hero-heading">
-          <div className="landing-hero-glow" aria-hidden />
+      <section
+        className={`landing-hero ${videoReady ? 'landing-hero--video-ready' : ''}`}
+        aria-labelledby="landing-hero-heading"
+      >
+        <div className="landing-hero-media" aria-hidden>
+          <div className="landing-hero-poster" />
+          {videoAllowed ? (
+            <video
+              className="landing-hero-video"
+              src={BANNER_VIDEO}
+              poster="/banner.jpg"
+              muted
+              playsInline
+              loop
+              preload="auto"
+              onCanPlayThrough={handleVideoCanPlayThrough}
+              onError={() => {
+                /* keep image background */
+              }}
+            />
+          ) : null}
+        </div>
+        <div className="landing-hero-scrim" aria-hidden />
+        <div className="landing-hero-panel">
           <p className="landing-eyebrow">Decentralized movie studio · devnet demo</p>
           <h1 id="landing-hero-heading" className="landing-title landing-title-hero">
             Watch and Contribute to the next big blockbuster
@@ -36,8 +89,10 @@ export function LandingPage() {
             them to earn.
           </p>
           <LandingWalletCta />
-        </section>
+        </div>
+      </section>
 
+      <main className="landing-main">
         <section className="landing-section" aria-labelledby="pillars-heading">
           <h2 id="pillars-heading" className="landing-section-title">
             Earn income by watching or contributing
