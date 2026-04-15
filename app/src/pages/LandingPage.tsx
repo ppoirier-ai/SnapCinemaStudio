@@ -78,7 +78,6 @@ export function LandingPage() {
             />
           ) : null}
         </div>
-        <div className="landing-hero-scrim" aria-hidden />
         <div className="landing-hero-panel">
           <p className="landing-eyebrow">Decentralized movie studio · devnet demo</p>
           <h1 id="landing-hero-heading" className="landing-title landing-title-hero">
