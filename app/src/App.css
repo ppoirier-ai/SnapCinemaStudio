@@ -2073,6 +2073,15 @@
   margin-bottom: 0.75rem;
 }
 
+.scene-board-empty {
+  padding: 1rem 0;
+  max-width: 28rem;
+}
+
+.scene-board-empty .muted {
+  margin-bottom: 0.75rem;
+}
+
 .contribute-scenes-page .collapsible-section {
   margin-bottom: 1.25rem;
 }
@@ -2165,6 +2174,17 @@
   border-color: var(--st-accent);
   background: var(--st-accent-dim);
   color: var(--st-heading);
+}
+
+.creator-movie-pick-own-mark {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+.creator-community-hint {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--st-border);
 }
 
 .creator-movie-new {

@@ -5,7 +5,6 @@ import { ChainPanel } from '../demo/ChainPanel'
 import { InitPanel } from '../demo/InitPanel'
 import { LogPanel } from '../demo/LogPanel'
 import { PositionsPanel } from '../demo/PositionsPanel'
-import { RegisterScenesPanel } from '../demo/RegisterScenesPanel'
 import { AdminYieldPanel } from '../components/yield/AdminYieldPanel'
 import { isPlatformOwner } from '../config/platformOwner'
 import { useDemoSlot } from '../context/DemoSlotContext'
@@ -48,8 +47,8 @@ export function StudioDemoPage() {
       <div className="studio-demo-intro">
         <h1 className="studio-demo-title">Studio</h1>
         <p className="muted studio-demo-tagline">
-          Platform admin: deploy and initialize the shared slot, yield tools, and batch scene
-          registration. Viewers use{' '}
+          Platform admin: deploy and initialize the shared slot and yield tools. Contributors
+          register scenes when they save YouTube URLs. Viewers use{' '}
           <button
             type="button"
             className="btn btn-ghost studio-inline-link"
@@ -84,7 +83,6 @@ export function StudioDemoPage() {
         onConfigureYieldTreasury={onConfigureYieldTreasury}
       />
       <LogPanel lines={log} />
-      <RegisterScenesPanel />
       <section className="panel admin-tools-note">
         <h2>Advanced tools</h2>
         <p className="muted">

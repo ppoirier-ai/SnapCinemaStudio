@@ -545,6 +545,12 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       if (!publicKey || !signTransaction || !slotAuthorityPk || !slotPk) {
         throw new Error('Connect wallet and wait for slot to load')
       }
+      const slotAi = await connection.getAccountInfo(slotPk)
+      if (!slotAi?.data) {
+        throw new Error(
+          'The shared StakeToCurate slot is not initialized on this cluster yet. The slot authority wallet must open Studio and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY in .env.example).',
+        )
+      }
       const sk = sceneKeyHex(movie.id, columnId, cellId)
       const bytes = hexToSceneKeyBytes(sk)
       const pk = scenePda(slotPk, bytes)

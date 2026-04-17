@@ -33,6 +33,8 @@ export function FanSceneBoard() {
     refreshOnChain,
     onUnstake,
     registerSceneForCell,
+    slotInitialized,
+    setToast,
   } = useDemoSlot()
 
   const active = selectedMovieId ? getMovie(selectedMovieId) : null
@@ -121,6 +123,12 @@ export function FanSceneBoard() {
       setUrlError('Connect your wallet to save.')
       return
     }
+    if (!slotInitialized) {
+      setUrlError(
+        'The shared demo slot is not initialized on-chain yet. The slot authority must open Studio and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY).',
+      )
+      return
+    }
 
     const skh = sceneKeyHex(movieId, editor.columnId, editor.cellId)
     let row = getSceneRow(skh)
@@ -139,9 +147,14 @@ export function FanSceneBoard() {
         row = getSceneRow(skh)
       } catch (err) {
         console.error(err)
-        setUrlError(
-          err instanceof Error ? err.message : 'Could not register scene slot',
-        )
+        const raw = err instanceof Error ? err.message : String(err)
+        const friendly =
+          raw.includes('AccountNotInitialized') || raw.includes('3012')
+            ? 'The shared demo slot is not initialized on this network. The slot authority must open Studio and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY).'
+            : raw.length > 420
+              ? `${raw.slice(0, 420)}…`
+              : raw
+        setUrlError(friendly)
         setReserveBusy(false)
         return
       } finally {
@@ -179,6 +192,12 @@ export function FanSceneBoard() {
 
   const handleAddTime = async () => {
     if (!active || !connected || !publicKey) return
+    if (!slotInitialized) {
+      setToast(
+        'Initialize the shared slot first: slot authority opens Studio → Initialize (see VITE_STAKE_SLOT_AUTHORITY).',
+      )
+      return
+    }
     const { columnId, cellId } = addTimeColumn(active.id)
     setReserveBusy(true)
     try {
@@ -187,6 +206,9 @@ export function FanSceneBoard() {
       await refreshOnChain(active, { log: false })
     } catch (e) {
       console.error(e)
+      setToast(
+        e instanceof Error ? e.message : 'Could not register scene slot on-chain.',
+      )
     } finally {
       setReserveBusy(false)
     }
@@ -194,6 +216,12 @@ export function FanSceneBoard() {
 
   const handleAddAlt = async (columnId: string) => {
     if (!active || !connected || !publicKey) return
+    if (!slotInitialized) {
+      setToast(
+        'Initialize the shared slot first: slot authority opens Studio → Initialize (see VITE_STAKE_SLOT_AUTHORITY).',
+      )
+      return
+    }
     const { cellId } = addAlternative(active.id, columnId)
     setReserveBusy(true)
     try {
@@ -202,6 +230,9 @@ export function FanSceneBoard() {
       await refreshOnChain(active, { log: false })
     } catch (e) {
       console.error(e)
+      setToast(
+        e instanceof Error ? e.message : 'Could not register scene slot on-chain.',
+      )
     } finally {
       setReserveBusy(false)
     }
@@ -225,6 +256,21 @@ export function FanSceneBoard() {
           Select a movie in <strong>Movies</strong> above to edit its scene
           matrix.
         </p>
+      ) : active.columns.length === 0 ? (
+        <div className="scene-board-empty">
+          <p className="muted">
+            No scene slots yet. When you add a time column, your wallet will pay
+            rent to register each new cell on-chain.
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary scene-add-first-time-btn"
+            disabled={reserveBusy || !connected}
+            onClick={() => void handleAddTime()}
+          >
+            + Add first moment in time
+          </button>
+        </div>
       ) : (
         <>
           <div className="scene-grid" role="region" aria-label="Scene matrix">

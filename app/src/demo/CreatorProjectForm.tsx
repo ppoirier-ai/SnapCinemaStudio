@@ -105,10 +105,12 @@ export function CreatorProjectForm() {
   const { publicKey, connected } = useWallet()
   const wallet = publicKey?.toBase58() ?? null
   const {
+    movies,
     moviesByWallet,
     createMovie,
     creatorSelectedMovieId,
     setCreatorSelectedMovieId,
+    selectedMovieId,
     setSelectedMovieId,
     getMovie,
   } = useMovies()
@@ -118,6 +120,11 @@ export function CreatorProjectForm() {
     [wallet, moviesByWallet],
   )
 
+  const myMovieIds = useMemo(() => {
+    if (!wallet) return new Set<string>()
+    return new Set(mine.map((m) => m.id))
+  }, [wallet, mine])
+
   const selected =
     creatorSelectedMovieId && wallet
       ? getMovie(creatorSelectedMovieId)
@@ -126,11 +133,10 @@ export function CreatorProjectForm() {
     selected && wallet && selected.creatorWallet === wallet
 
   return (
-    <section className="panel" aria-labelledby="creator-concept-heading">
-      <h2 id="creator-concept-heading">Your movie concepts</h2>
+    <div className="creator-project-form">
       <p className="muted">
-        Only the wallet that created a concept can change its title and description.
-        Scene cuts for each movie are edited in <strong>Scene management</strong> below.
+        Pick any movie to work on scene cuts in <strong>Scene management</strong> below.
+        Title and description can only be changed by the wallet that created that movie.
       </p>
 
       {!connected || !wallet ? (
@@ -138,19 +144,6 @@ export function CreatorProjectForm() {
       ) : (
         <>
           <div className="creator-movie-list">
-            {mine.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`creator-movie-pick${creatorSelectedMovieId === m.id ? ' creator-movie-pick-active' : ''}`}
-                onClick={() => {
-                  setCreatorSelectedMovieId(m.id)
-                  setSelectedMovieId(m.id)
-                }}
-              >
-                {m.title.trim() || 'Untitled'}
-              </button>
-            ))}
             <button
               type="button"
               className="btn btn-secondary creator-movie-new"
@@ -158,21 +151,49 @@ export function CreatorProjectForm() {
             >
               + New movie concept
             </button>
+            {movies.map((m) => {
+              const isMine = myMovieIds.has(m.id)
+              const active = selectedMovieId === m.id
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={`creator-movie-pick${active ? ' creator-movie-pick-active' : ''}${isMine ? ' creator-movie-pick-own' : ''}`}
+                  onClick={() => {
+                    setCreatorSelectedMovieId(m.id)
+                    setSelectedMovieId(m.id)
+                  }}
+                >
+                  {m.title.trim() || 'Untitled'}
+                  {isMine ? (
+                    <span className="creator-movie-pick-own-mark" aria-hidden>
+                      {' '}
+                      · yours
+                    </span>
+                  ) : null}
+                </button>
+              )
+            })}
           </div>
 
           {mine.length === 0 && (
             <p className="muted creator-movie-empty">
-              No concepts yet — create one to add a title and description.
+              You have not created a concept yet — use <strong>+ New movie concept</strong>{' '}
+              to add a title and description, or pick someone else&apos;s movie to contribute
+              scenes.
             </p>
           )}
 
-          {selectedMine && <ConceptEditor movie={selected} wallet={wallet} />}
+          {selectedMine && selected && <ConceptEditor movie={selected} wallet={wallet} />}
 
-          {creatorSelectedMovieId && !selectedMine && (
-            <p className="muted">Select one of your concepts above.</p>
+          {creatorSelectedMovieId && selected && !selectedMine && (
+            <p className="muted creator-community-hint">
+              Title and description are locked to the creator&apos;s wallet. You can still add
+              or edit scene cuts in Scene management.
+            </p>
           )}
         </>
       )}
-    </section>
+    </div>
   )
 }

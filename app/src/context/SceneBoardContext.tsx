@@ -30,16 +30,11 @@ function newId() {
 }
 
 function defaultColumns(): SceneColumn[] {
-  return [
-    {
-      id: newId(),
-      cells: [{ id: newId(), youtubeUrl: null }],
-    },
-  ]
+  return []
 }
 
 function normalizeColumns(raw: unknown): SceneColumn[] {
-  if (!Array.isArray(raw) || raw.length === 0) return defaultColumns()
+  if (!Array.isArray(raw) || raw.length === 0) return []
   return raw.map((col: unknown) => {
     const c = col as { id?: string; cells?: unknown }
     return {
