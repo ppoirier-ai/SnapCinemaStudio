@@ -10,7 +10,11 @@ import {
   type ReactNode,
 } from 'react'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
-import { Keypair, PublicKey, type TransactionInstruction } from '@solana/web3.js'
+import {
+  Keypair,
+  PublicKey,
+  type TransactionInstruction,
+} from '@solana/web3.js'
 import { extractYoutubeVideoId } from '../lib/youtubeUrl'
 import type { Movie } from './SceneBoardContext'
 import {
@@ -93,8 +97,14 @@ type DemoSlotValue = {
     movie?: Movie | null,
     opts?: { log?: boolean },
   ) => Promise<void>
-  /** Slot authority only: `register_scene` for each playable cell missing a Scene account. */
+  /** Slot authority only: legacy batch register for cells that already have URLs (admin). */
   ensureScenesRegisteredForMovie: (movie: Movie) => Promise<void>
+  /** Contributor pays rent: register Scene PDA for an empty cell (call after adding column/cell). */
+  registerSceneForCell: (
+    movie: Movie,
+    columnId: string,
+    cellId: string,
+  ) => Promise<void>
   run: (label: string, fn: () => Promise<void>) => Promise<void>
   onSetup: () => void
   onStakeUp: (sceneKeyHex: string, lamports: bigint) => void
@@ -477,6 +487,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
             ixs.push(
               ixRegisterScene(
                 publicKey,
+                slotAuthorityPk,
                 DEMO_SLOT_ID,
                 bytes,
                 REGISTER_SCENE_INITIAL_RANK_LAMPORTS,
@@ -516,6 +527,52 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
           `raised rank on ${rankBumpCount} scene(s) so downstake (thumbs) clears the on-chain floor`,
         )
       append(parts.length > 0 ? `OK: ${parts.join(' · ')}` : `OK: chain update (${ixs.length} ix)`)
+      await refreshOnChain(movie)
+    },
+    [
+      append,
+      connection,
+      publicKey,
+      refreshOnChain,
+      signTransaction,
+      slotAuthorityPk,
+      slotPk,
+    ],
+  )
+
+  const registerSceneForCell = useCallback(
+    async (movie: Movie, columnId: string, cellId: string) => {
+      if (!publicKey || !signTransaction || !slotAuthorityPk || !slotPk) {
+        throw new Error('Connect wallet and wait for slot to load')
+      }
+      const sk = sceneKeyHex(movie.id, columnId, cellId)
+      const bytes = hexToSceneKeyBytes(sk)
+      const pk = scenePda(slotPk, bytes)
+      const ai = await connection.getAccountInfo(pk)
+      if (ai) {
+        const decoded = tryDecodeScene(Buffer.from(ai.data))
+        if (
+          decoded?.reservedBy &&
+          !decoded.reservedBy.equals(PublicKey.default) &&
+          !decoded.reservedBy.equals(publicKey)
+        ) {
+          throw new Error(
+            'This scene slot is already registered by another wallet.',
+          )
+        }
+        append('Scene already registered for this cell.')
+        await refreshOnChain(movie)
+        return
+      }
+      const ix = ixRegisterScene(
+        publicKey,
+        slotAuthorityPk,
+        DEMO_SLOT_ID,
+        bytes,
+        REGISTER_SCENE_INITIAL_RANK_LAMPORTS,
+      )
+      await sendAndConfirm(connection, { publicKey, signTransaction }, [ix])
+      append('OK: scene slot registered on-chain')
       await refreshOnChain(movie)
     },
     [
@@ -904,6 +961,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     append,
     refreshOnChain,
     ensureScenesRegisteredForMovie,
+    registerSceneForCell,
     run,
     onSetup,
     onStakeUp,

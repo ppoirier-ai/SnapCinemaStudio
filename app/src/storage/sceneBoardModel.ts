@@ -3,6 +3,8 @@ export type SceneCell = {
   youtubeUrl: string | null
   /** Stake weight for weighted alternative selection (stringified bigint in JSON). */
   rank?: string
+  /** Set after contributor registers the Scene PDA for this cell (matches on-chain `reserved_by`). */
+  reservedWallet?: string | null
 }
 export type SceneColumn = { id: string; cells: SceneCell[] }
 

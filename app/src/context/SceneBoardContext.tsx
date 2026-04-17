@@ -56,6 +56,13 @@ function normalizeColumns(raw: unknown): SceneColumn[] {
               youtubeUrl:
                 typeof x.youtubeUrl === 'string' ? x.youtubeUrl : null,
               rank: typeof x.rank === 'string' ? x.rank : undefined,
+              reservedWallet:
+                typeof (x as { reservedWallet?: unknown }).reservedWallet ===
+                'string'
+                  ? (x as { reservedWallet: string }).reservedWallet
+                  : (x as { reservedWallet?: null }).reservedWallet === null
+                    ? null
+                    : undefined,
             }
           })
         : [{ id: newId(), youtubeUrl: null }],
@@ -136,6 +143,7 @@ function legacyToMovie(legacy: LegacyBoard, creatorWallet: string): Movie {
 }
 
 function persist(state: MoviesUIState) {
+  if (sceneBoardCloudConfigured()) return
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     writeLocalMeta({ lastLocalWriteMs: Date.now() })
@@ -182,13 +190,20 @@ type MoviesContextValue = {
   ) => void
   saveProjectConcept: (movieId: string, wallet: string | null) => void
   unlockProjectConcept: (movieId: string, wallet: string | null) => void
-  addTimeColumn: (movieId: string) => void
-  addAlternative: (movieId: string, columnId: string) => void
+  addTimeColumn: (movieId: string) => { columnId: string; cellId: string }
+  addAlternative: (movieId: string, columnId: string) => { cellId: string }
   setCellUrl: (
     movieId: string,
     columnId: string,
     cellId: string,
     url: string | null,
+  ) => void
+  /** After on-chain `register_scene`, store contributor wallet for this cell. */
+  setCellReservedWallet: (
+    movieId: string,
+    columnId: string,
+    cellId: string,
+    wallet: string | null,
   ) => void
 }
 
@@ -199,8 +214,17 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
   const wallet = publicKey?.toBase58() ?? null
   const cloudHydratedKey = useRef<string | null>(null)
   const cloudPushTimer = useRef<number | null>(null)
+  const cloudMigratedLocal = useRef(false)
 
   const [state, setState] = useState<MoviesUIState>(() => {
+    if (sceneBoardCloudConfigured()) {
+      return {
+        movies: [],
+        selectedMovieId: null,
+        creatorSelectedMovieId: null,
+        watchMovieId: null,
+      }
+    }
     const v2 = loadV2()
     if (v2) {
       const { movies } = v2
@@ -234,22 +258,41 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     void (async () => {
       const remotes = await loadRemoteSceneBoardRows(targets)
-      if (cancelled || remotes.length === 0) return
+      if (cancelled) return
+
+      const empty: MoviesUIState = {
+        movies: [],
+        selectedMovieId: null,
+        creatorSelectedMovieId: null,
+        watchMovieId: null,
+      }
+
+      if (remotes.length === 0 && !cloudMigratedLocal.current) {
+        cloudMigratedLocal.current = true
+        const localOnly = loadV2()
+        if (localOnly && localOnly.movies.length > 0) {
+          setState(localOnly)
+          void pushSceneBoardForWallet(wallet, localOnly, signMessage)
+          return
+        }
+      }
+
+      if (remotes.length === 0) return
+
       setState((s) => {
-        const meta = readLocalMeta()
         const merged = mergeRemoteSceneBoardRows(
-          s,
-          meta.lastLocalWriteMs,
+          sceneBoardCloudConfigured() ? empty : s,
+          sceneBoardCloudConfigured() ? 0 : readLocalMeta().lastLocalWriteMs,
           remotes,
         )
-        persist(merged)
+        if (!sceneBoardCloudConfigured()) persist(merged)
         return merged
       })
     })()
     return () => {
       cancelled = true
     }
-  }, [wallet])
+  }, [wallet, signMessage])
 
   useEffect(() => {
     if (!wallet || legacyDone) return
@@ -279,6 +322,7 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
   }, [wallet, legacyDone])
 
   useEffect(() => {
+    if (sceneBoardCloudConfigured()) return
     const t = window.setTimeout(() => persist(state), 250)
     return () => window.clearTimeout(t)
   }, [state])
@@ -455,26 +499,31 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
 
   const addTimeColumn = useCallback(
     (movieId: string) => {
+      const columnId = newId()
+      const cellId = newId()
       patchMovieColumns(movieId, (cols) => [
         ...cols,
-        { id: newId(), cells: [{ id: newId(), youtubeUrl: null }] },
+        { id: columnId, cells: [{ id: cellId, youtubeUrl: null }] },
       ])
+      return { columnId, cellId }
     },
     [patchMovieColumns],
   )
 
   const addAlternative = useCallback(
     (movieId: string, columnId: string) => {
+      const cellId = newId()
       patchMovieColumns(movieId, (cols) =>
         cols.map((col) =>
           col.id === columnId
             ? {
                 ...col,
-                cells: [...col.cells, { id: newId(), youtubeUrl: null }],
+                cells: [...col.cells, { id: cellId, youtubeUrl: null }],
               }
             : col,
         ),
       )
+      return { cellId }
     },
     [patchMovieColumns],
   )
@@ -489,6 +538,29 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
                 ...col,
                 cells: col.cells.map((c) =>
                   c.id === cellId ? { ...c, youtubeUrl: url } : c,
+                ),
+              },
+        ),
+      )
+    },
+    [patchMovieColumns],
+  )
+
+  const setCellReservedWallet = useCallback(
+    (
+      movieId: string,
+      columnId: string,
+      cellId: string,
+      wallet: string | null,
+    ) => {
+      patchMovieColumns(movieId, (cols) =>
+        cols.map((col) =>
+          col.id !== columnId
+            ? col
+            : {
+                ...col,
+                cells: col.cells.map((c) =>
+                  c.id === cellId ? { ...c, reservedWallet: wallet } : c,
                 ),
               },
         ),
@@ -516,6 +588,7 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
       addTimeColumn,
       addAlternative,
       setCellUrl,
+      setCellReservedWallet,
     }),
     [
       state.movies,
@@ -535,6 +608,7 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
       addTimeColumn,
       addAlternative,
       setCellUrl,
+      setCellReservedWallet,
     ],
   )
 

@@ -39,7 +39,7 @@ Reaction **stakes** lock **SOL in the program vault** (`vault` PDA). **`total_pr
 | `initialize_slot` | Authority + creator + platform pubkeys; creates **slot** PDA + **vault** PDA; initializes `total_principal_locked = 0`, `yield_treasury = default`. |
 | `configure_yield_treasury` | Authority sets **yield_treasury** pubkey (rejects default). |
 | `crank_sweep_yield_pool` | Permissionless: transfer up to `amount` from vault → `yield_treasury` if vault retains rent + `total_principal_locked`. |
-| `register_scene` | Authority registers a **scene** under a slot (`scene_key`, initial rank). |
+| `register_scene` | **Contributor** signs and pays rent; registers a **scene** PDA under the slot (`scene_key`, initial rank) and sets **`reserved_by`** to the contributor. Slot authority does not sign. **Breaking:** older `Scene` account layouts on devnet are incompatible—increase `VITE_DEMO_SLOT_ID` or deploy a fresh program after upgrade. |
 | `stake_scene_up` / `stake_scene_down` | Lock SOL in vault; update rank; increment **`total_principal_locked`** by `amount`. |
 | `unstake_scene` | Return principal; decrement **`total_principal_locked`**; residual rank rules. |
 | `reset_scene_rank` | Authority-only rank reset (no lamport movement). |

@@ -84,7 +84,8 @@ pub mod stake_to_curate {
         Ok(())
     }
 
-    /// Authority registers a playable scene (one `scene_key` per movie/column/cell id tuple).
+    /// Contributor registers a playable scene and pays rent (one `scene_key` per movie/column/cell id tuple).
+    /// `reserved_by` is set to the contributor; slot authority is not required to sign.
     pub fn register_scene(
         ctx: Context<RegisterScene>,
         scene_key: [u8; 32],
@@ -97,6 +98,7 @@ pub mod stake_to_curate {
         s.rank = rank;
         s.active_stake = 0;
         s.bump = ctx.bumps.scene;
+        s.reserved_by = ctx.accounts.contributor.key();
         Ok(())
     }
 
@@ -294,6 +296,8 @@ pub struct Scene {
     pub rank: u64,
     pub active_stake: u64,
     pub bump: u8,
+    /// Wallet that paid rent to create this scene (fills URL off-chain). `default` = legacy authority-registered.
+    pub reserved_by: Pubkey,
 }
 
 #[account]
@@ -342,14 +346,11 @@ pub struct InitializeSlot<'info> {
 #[instruction(scene_key: [u8; 32], initial_rank: u64)]
 pub struct RegisterScene<'info> {
     #[account(mut)]
-    pub authority: Signer<'info>,
-    #[account(
-        constraint = slot.authority == authority.key() @ ErrorCode::Unauthorized
-    )]
+    pub contributor: Signer<'info>,
     pub slot: Account<'info, Slot>,
     #[account(
         init,
-        payer = authority,
+        payer = contributor,
         space = 8 + Scene::INIT_SPACE,
         seeds = [b"scene", slot.key().as_ref(), scene_key.as_ref()],
         bump

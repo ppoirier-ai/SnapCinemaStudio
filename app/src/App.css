@@ -2039,6 +2039,16 @@
   color: var(--st-heading);
 }
 
+.scene-url-modal-hint {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.scene-cell-locked-hint {
+  font-size: 0.7rem;
+}
+
 .scene-url-form .text-input {
   width: 100%;
   margin-top: 0.35rem;

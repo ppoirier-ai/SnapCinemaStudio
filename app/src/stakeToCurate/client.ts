@@ -204,7 +204,7 @@ function readU64LE(data: Buffer, offset: number): bigint {
 export const SCENE_POSITION_DATA_LEN = 99
 
 /** 8-byte Anchor discriminator + `Scene` body (`programs/stake_to_curate`). */
-export const SCENE_ACCOUNT_DATA_LEN = 89
+export const SCENE_ACCOUNT_DATA_LEN = 121
 
 /** 8-byte discriminator + `Scene` account body */
 export function decodeScene(data: Buffer) {
@@ -223,7 +223,9 @@ export function decodeScene(data: Buffer) {
   const activeStake = readU64LE(data, p)
   p += 8
   const bump = data.readUInt8(p)
-  return { slot, sceneKey, rank, activeStake, bump }
+  p += 1
+  const reservedBy = new PublicKey(data.subarray(p, p + 32))
+  return { slot, sceneKey, rank, activeStake, bump, reservedBy }
 }
 
 /** Safe decode for RPC data (wrong layout, pre-migration account, or garbage address). */
@@ -323,14 +325,18 @@ export function ixInitializeSlot(
   })
 }
 
+/**
+ * Register a Scene PDA. `contributor` signs and pays rent; `slotAuthority` is only used to derive the slot PDA (must match initialized slot).
+ */
 export function ixRegisterScene(
-  authority: PublicKey,
+  contributor: PublicKey,
+  slotAuthority: PublicKey,
   slotId: number,
   sceneKey32: Uint8Array,
   initialRank: bigint,
 ): TransactionInstruction {
   if (sceneKey32.length !== 32) throw new Error('scene_key must be 32 bytes')
-  const slot = slotPda(authority, slotId)
+  const slot = slotPda(slotAuthority, slotId)
   const scene = scenePda(slot, sceneKey32)
   const data = Buffer.concat([
     IX.register_scene,
@@ -340,7 +346,7 @@ export function ixRegisterScene(
   return new TransactionInstruction({
     programId: PROGRAM_ID,
     keys: [
-      { pubkey: authority, isSigner: true, isWritable: true },
+      { pubkey: contributor, isSigner: true, isWritable: true },
       { pubkey: slot, isSigner: false, isWritable: false },
       { pubkey: scene, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
