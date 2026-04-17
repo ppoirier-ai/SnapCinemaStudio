@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { useWallet } from '@solana/wallet-adapter-react'
 import { useDemoSlot } from '../context/DemoSlotContext'
-import {
-  getFirstYoutubeVideoIdFromMovie,
-  useMovies,
-  type Movie,
-} from '../context/SceneBoardContext'
+import { useMovies } from '../context/SceneBoardContext'
 import { sceneKeyHex } from '../stakeToCurate/sceneKey'
 import {
   extractYoutubeVideoId,
@@ -16,19 +11,10 @@ import { SceneCellForkTooltip } from './SceneCellForkTooltip'
 
 type EditorTarget = { columnId: string; cellId: string; replace: boolean }
 
-function moviePosterSrc(movie: Movie): string | null {
-  const id = getFirstYoutubeVideoIdFromMovie(movie)
-  return id ? youtubeThumbnailUrl(id) : null
-}
-
 export function FanSceneBoard() {
-  const { publicKey } = useWallet()
-  const walletAddr = publicKey?.toBase58() ?? null
   const {
     movies,
     selectedMovieId,
-    setSelectedMovieId,
-    setCreatorSelectedMovieId,
     getMovie,
     addTimeColumn,
     addAlternative,
@@ -107,59 +93,25 @@ export function FanSceneBoard() {
   }
 
   return (
-    <section className="panel fan-scene-board" aria-labelledby="scene-board-heading">
-      <h2 id="scene-board-heading">Scene</h2>
+    <section
+      className="panel fan-scene-board"
+      aria-labelledby="scene-board-heading"
+    >
+      <h2 id="scene-board-heading" className="sr-only">
+        Scene matrix
+      </h2>
 
       {movies.length === 0 ? (
         <p className="muted">
           No movies yet. Create a concept in <strong>Movies</strong> above.
         </p>
+      ) : !active ? (
+        <p className="muted">
+          Select a movie in <strong>Movies</strong> above to edit its scene matrix.
+        </p>
       ) : (
         <>
-          <div className="movie-selector-bar" role="tablist" aria-label="Pick movie">
-            {movies.map((m) => {
-              const poster = moviePosterSrc(m)
-              const activePick = m.id === selectedMovieId
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activePick}
-                  className={`movie-selector-item${activePick ? ' movie-selector-item-active' : ''}`}
-                  onClick={() => {
-                    setSelectedMovieId(m.id)
-                    if (walletAddr && m.creatorWallet === walletAddr) {
-                      setCreatorSelectedMovieId(m.id)
-                    }
-                  }}
-                >
-                  <span className="movie-selector-thumb-wrap">
-                    {poster ? (
-                      <img
-                        className="movie-selector-thumb"
-                        src={poster}
-                        alt=""
-                      />
-                    ) : (
-                      <span className="movie-selector-thumb-fallback" aria-hidden>
-                        ▶
-                      </span>
-                    )}
-                  </span>
-                  <span className="movie-selector-title">
-                    {m.title.trim() || 'Untitled'}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {!active ? (
-            <p className="muted">Select a movie above.</p>
-          ) : (
-            <>
-              <div className="scene-grid" role="region" aria-label="Scene matrix">
+          <div className="scene-grid" role="region" aria-label="Scene matrix">
               {active.columns.map((col, colIndex) => (
                 <div key={col.id} className="scene-column">
                   <div className="scene-column-head">Time {colIndex + 1}</div>
@@ -269,8 +221,6 @@ export function FanSceneBoard() {
                 </button>
               </div>
             </div>
-            </>
-          )}
         </>
       )}
 
