@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import {
   getFirstYoutubeVideoIdFromMovie,
@@ -13,10 +14,6 @@ import {
 } from '../lib/youtubeUrl'
 import { SceneCellForkTooltip } from './SceneCellForkTooltip'
 
-type Props = {
-  subheading?: string
-}
-
 type EditorTarget = { columnId: string; cellId: string; replace: boolean }
 
 function moviePosterSrc(movie: Movie): string | null {
@@ -24,11 +21,14 @@ function moviePosterSrc(movie: Movie): string | null {
   return id ? youtubeThumbnailUrl(id) : null
 }
 
-export function FanSceneBoard({ subheading }: Props) {
+export function FanSceneBoard() {
+  const { publicKey } = useWallet()
+  const walletAddr = publicKey?.toBase58() ?? null
   const {
     movies,
     selectedMovieId,
     setSelectedMovieId,
+    setCreatorSelectedMovieId,
     getMovie,
     addTimeColumn,
     addAlternative,
@@ -38,13 +38,9 @@ export function FanSceneBoard({ subheading }: Props) {
     chainSynced,
     connected,
     busy,
-    publicKey,
-    slotAuthority,
     getSceneRow,
-    ensureScenesRegisteredForMovie,
     refreshOnChain,
     onUnstake,
-    append,
   } = useDemoSlot()
 
   const active = selectedMovieId ? getMovie(selectedMovieId) : null
@@ -69,27 +65,6 @@ export function FanSceneBoard({ subheading }: Props) {
       }
     })()
   }, [active, connected, refreshOnChain, sceneMatrixDigest])
-
-  const [registerBusy, setRegisterBusy] = useState(false)
-  const slotAuthMatches =
-    publicKey != null &&
-    slotAuthority != null &&
-    publicKey.equals(slotAuthority)
-
-  const onRegisterMissingScenes = useCallback(async () => {
-    if (!active) return
-    setRegisterBusy(true)
-    try {
-      await ensureScenesRegisteredForMovie(active)
-    } catch (e) {
-      console.error(e)
-      append(
-        `ERR: register scenes — ${e instanceof Error ? e.message : String(e)}`,
-      )
-    } finally {
-      setRegisterBusy(false)
-    }
-  }, [active, append, ensureScenesRegisteredForMovie])
 
   const [editor, setEditor] = useState<EditorTarget | null>(null)
   const [urlDraft, setUrlDraft] = useState('')
@@ -134,19 +109,10 @@ export function FanSceneBoard({ subheading }: Props) {
   return (
     <section className="panel fan-scene-board" aria-labelledby="scene-board-heading">
       <h2 id="scene-board-heading">Scene</h2>
-      <p className="muted fan-scene-board-legend">
-        Choose a movie, then edit its scene matrix. <strong>Columns</strong> are time;
-        <strong>rows</strong> are alternate Shorts-style cuts. Each playable cell has its own
-        on-chain <strong>Scene</strong> (rank / stake). The slot authority must click{' '}
-        <strong>Register missing scenes</strong> below so Phantom signs once per batch (not
-        on hover). <strong>Watch</strong> picks alternates using those scenes’ ranks. Hover a
-        thumbnail for stats and unstake.
-      </p>
-      {subheading && <p className="muted fan-scene-board-sub">{subheading}</p>}
 
       {movies.length === 0 ? (
         <p className="muted">
-          No movies yet. Create a concept on the <strong>Creator</strong> tab first.
+          No movies yet. Create a concept in <strong>Movies</strong> above.
         </p>
       ) : (
         <>
@@ -161,7 +127,12 @@ export function FanSceneBoard({ subheading }: Props) {
                   role="tab"
                   aria-selected={activePick}
                   className={`movie-selector-item${activePick ? ' movie-selector-item-active' : ''}`}
-                  onClick={() => setSelectedMovieId(m.id)}
+                  onClick={() => {
+                    setSelectedMovieId(m.id)
+                    if (walletAddr && m.creatorWallet === walletAddr) {
+                      setCreatorSelectedMovieId(m.id)
+                    }
+                  }}
                 >
                   <span className="movie-selector-thumb-wrap">
                     {poster ? (
@@ -188,29 +159,6 @@ export function FanSceneBoard({ subheading }: Props) {
             <p className="muted">Select a movie above.</p>
           ) : (
             <>
-              {connected && slotAuthMatches ? (
-                <div className="fan-scene-register-row">
-                  <button
-                    type="button"
-                    className="btn btn-primary fan-scene-register-btn"
-                    disabled={busy || registerBusy}
-                    onClick={() => void onRegisterMissingScenes()}
-                  >
-                    {registerBusy ? 'Signing…' : 'Register missing scenes on-chain'}
-                  </button>
-                  <span className="muted fan-scene-register-hint">
-                    Creates a Scene account for each cell that has a YouTube URL but is not on
-                    devnet yet. Requires the program in your build to match{' '}
-                    <code className="pid">VITE_STAKE_TO_CURATE_PROGRAM_ID</code>.
-                  </span>
-                </div>
-              ) : connected ? (
-                <p className="muted fan-scene-register-row">
-                  Connect the <strong>slot authority</strong> wallet (same as{' '}
-                  <code className="pid">VITE_STAKE_SLOT_AUTHORITY</code> when set) to
-                  register new scenes on-chain.
-                </p>
-              ) : null}
               <div className="scene-grid" role="region" aria-label="Scene matrix">
               {active.columns.map((col, colIndex) => (
                 <div key={col.id} className="scene-column">

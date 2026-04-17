@@ -87,8 +87,9 @@ export function SceneForkHoverPanel({
       ) : (
         <p className="muted scene-chain-tip-copy">
           Scene not registered on-chain yet. Connect the <strong>slot authority</strong>{' '}
-          wallet, add or confirm the YouTube URL on this cell (Scene tab), then refresh —
-          that registers one <code>Scene</code> PDA per playable cell.
+          wallet, add or confirm the YouTube URL on this cell (wallet menu{' '}
+          <strong>Scene</strong>), then run <strong>Register missing scenes on-chain</strong> from{' '}
+          <strong>Studio</strong> — that creates the <code>Scene</code> PDAs for playable cells.
         </p>
       )}
     </div>

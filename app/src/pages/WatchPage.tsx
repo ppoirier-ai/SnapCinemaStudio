@@ -255,7 +255,7 @@ export function WatchPage() {
           <p className="muted watch-curate-hint" role="note">
             The shared demo slot is not initialized on this cluster yet. A platform
             admin must connect the <strong>slot authority</strong> wallet and run{' '}
-            <strong>Studio → Admin → Initialize</strong> once (see{' '}
+            <strong>Studio → Initialize</strong> once (see{' '}
             <code>VITE_STAKE_SLOT_AUTHORITY</code> in <code>.env.example</code>).
           </p>
         )}
@@ -267,9 +267,9 @@ export function WatchPage() {
           !sceneReady && (
             <p className="muted watch-curate-hint" role="note">
               This clip is not registered on-chain yet. The <strong>slot authority</strong>{' '}
-              wallet should open the <strong>Scene</strong> tab once so playable cells
-              call <code>register_scene</code> (or add the YouTube URL while connected as
-              authority).
+              should add or confirm the YouTube URL in the wallet menu <strong>Scene</strong>{' '}
+              page, then run <strong>Register missing scenes on-chain</strong> from{' '}
+              <strong>Studio</strong> so playable cells get <code>register_scene</code>.
             </p>
           )}
         {connected && chainSynced && (
@@ -359,8 +359,8 @@ export function WatchPage() {
         </h2>
         {movies.length === 0 ? (
           <p className="muted watch-library-empty">
-            No movies in this browser yet. Create a concept under Studio → Creator and
-            add scenes from the wallet menu (Scene).
+            No movies in this browser yet. Create a concept under wallet menu{' '}
+            <strong>Scene</strong> (Movies), then add scene cuts in Scene management.
           </p>
         ) : (
           <ul className="watch-movie-strip">
@@ -368,7 +368,7 @@ export function WatchPage() {
               const poster = posterForMovie(m)
               const desc =
                 m.description.trim() ||
-                'No description yet — creator can add one on the Creator tab.'
+                'No description yet — creator can add one under Scene → Movies.'
               const isPlaying = playingMovie?.id === m.id
               return (
                 <li key={m.id} className="watch-movie-strip-item">

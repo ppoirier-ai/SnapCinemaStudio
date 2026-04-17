@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { isPlatformOwner } from '../config/platformOwner'
 import {
   useWalletModal,
   WalletModalButton,
@@ -67,14 +68,16 @@ export function WalletMenu({ variant }: Props) {
           >
             Watch
           </NavLink>
-          <NavLink
-            to="/studio"
-            className={navClass}
-            role="menuitem"
-            onClick={() => setOpen(false)}
-          >
-            Studio
-          </NavLink>
+          {isPlatformOwner(publicKey) && (
+            <NavLink
+              to="/studio"
+              className={navClass}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              Studio
+            </NavLink>
+          )}
           <NavLink
             to="/contribute"
             className={navClass}

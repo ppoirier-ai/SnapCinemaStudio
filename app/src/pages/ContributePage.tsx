@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import { CollapsibleSection } from '../components/CollapsibleSection'
+import { CreatorProjectForm } from '../demo/CreatorProjectForm'
 import { FanSceneBoard } from '../demo/FanSceneBoard'
 
 export function ContributePage() {
@@ -13,7 +15,12 @@ export function ContributePage() {
       >
         ← Back to Watch
       </button>
-      <FanSceneBoard subheading="Same scene matrix as the wallet menu Scene entry. Everything saves in this browser only." />
+      <CollapsibleSection title="Movies" defaultOpen>
+        <CreatorProjectForm />
+      </CollapsibleSection>
+      <CollapsibleSection title="Scene management" defaultOpen>
+        <FanSceneBoard />
+      </CollapsibleSection>
     </main>
   )
 }

@@ -109,6 +109,7 @@ export function CreatorProjectForm() {
     createMovie,
     creatorSelectedMovieId,
     setCreatorSelectedMovieId,
+    setSelectedMovieId,
     getMovie,
   } = useMovies()
 
@@ -129,8 +130,7 @@ export function CreatorProjectForm() {
       <h2 id="creator-concept-heading">Your movie concepts</h2>
       <p className="muted">
         Only the wallet that created a concept can change its title and description.
-        Scene cuts for <em>all</em> movies are managed from the wallet menu under{' '}
-        <strong>Scene</strong> (with a movie picker there).
+        Scene cuts for each movie are edited in <strong>Scene management</strong> below.
       </p>
 
       {!connected || !wallet ? (
@@ -143,7 +143,10 @@ export function CreatorProjectForm() {
                 key={m.id}
                 type="button"
                 className={`creator-movie-pick${creatorSelectedMovieId === m.id ? ' creator-movie-pick-active' : ''}`}
-                onClick={() => setCreatorSelectedMovieId(m.id)}
+                onClick={() => {
+                  setCreatorSelectedMovieId(m.id)
+                  setSelectedMovieId(m.id)
+                }}
               >
                 {m.title.trim() || 'Untitled'}
               </button>

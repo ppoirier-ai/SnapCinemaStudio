@@ -18,8 +18,8 @@
 Before fans can stake on **Watch**, the **slot authority** wallet (see `VITE_STAKE_SLOT_AUTHORITY` in [`app/.env.example`](../app/.env.example)) should:
 
 1. Point the app at the deployed StakeToCurate program (`VITE_STAKE_TO_CURATE_PROGRAM_ID`, RPC, cluster matching Phantom).
-2. In **Studio → Admin**, run **Initialize** once: creates the **slot** PDA and **vault** PDA that will hold all staked SOL for that demo slot.
-3. Ensure **scenes** exist on-chain for playable cells: the authority registers scenes (`register_scene`) so each clip has a **scene** account with **rank** and can receive stakes (often via **Scene** in the wallet menu).
+2. In **Studio** (platform owner wallet only), run **Initialize** once: creates the **slot** PDA and **vault** PDA that will hold all staked SOL for that demo slot.
+3. Ensure **scenes** exist on-chain for playable cells: creators add YouTube URLs per cell in the wallet menu **Scene** page; the **slot authority** then runs **Register missing scenes on-chain** from **Studio** (batch `register_scene`) so each playable cell has a **scene** account with **rank** and can receive stakes.
 
 If the slot is missing or a clip is not registered, Watch shows hints and reactions may stay disabled.
 
@@ -110,3 +110,4 @@ Unstake is invoked with a **scene key** from the stake/Scene tooling; the contex
 |------|--------|
 | 2026-04-13 | Initial doc from implementation review (yield boost removed from Watch; admin Jito/Kamino panel on Studio). |
 | 2026-04-14 | Added `total_principal_locked`, `configure_yield_treasury`, `crank_sweep_yield_pool`, and `immediate-yield-worker` automation. |
+| 2026-04-17 | Batch `register_scene` documented under **Studio**; cell URLs edited on wallet menu **Scene**. Studio route gated to platform owner in the app UI. |

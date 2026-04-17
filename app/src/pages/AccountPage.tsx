@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import { AccountPanelContent } from '../demo/AccountPanelContent'
+import { RevenuePanel } from '../demo/RevenuePanel'
 
 export function AccountPage() {
   const {
@@ -36,6 +37,7 @@ export function AccountPage() {
           onRefresh={() => void refreshOnChain(null, { log: true })}
         />
       </section>
+      <RevenuePanel />
     </main>
   )
 }

@@ -217,8 +217,8 @@ export function LandingPage() {
             Step into the studio
           </h2>
           <p className="landing-cta-blurb">
-            Connect once to reach Watch, Studio, and Contribute—wallet-native cinema
-            for a decentralized age.
+            Connect once to reach Watch, Scene, and Account—wallet-native cinema for a
+            decentralized age.
           </p>
           <LandingWalletCta id="landing-footer-cta" />
         </section>
