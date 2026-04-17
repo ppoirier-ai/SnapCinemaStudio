@@ -125,7 +125,7 @@ export function FanSceneBoard() {
     }
     if (!slotInitialized) {
       setUrlError(
-        'The shared demo slot is not initialized on-chain yet. The slot authority must open Studio and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY).',
+        'The shared demo slot is not initialized on-chain yet. The slot authority must open Dashboard and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY).',
       )
       return
     }
@@ -150,7 +150,7 @@ export function FanSceneBoard() {
         const raw = err instanceof Error ? err.message : String(err)
         const friendly =
           raw.includes('AccountNotInitialized') || raw.includes('3012')
-            ? 'The shared demo slot is not initialized on this network. The slot authority must open Studio and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY).'
+            ? 'The shared demo slot is not initialized on this network. The slot authority must open Dashboard and run Initialize once (see VITE_STAKE_SLOT_AUTHORITY).'
             : raw.length > 420
               ? `${raw.slice(0, 420)}…`
               : raw
@@ -194,7 +194,7 @@ export function FanSceneBoard() {
     if (!active || !connected || !publicKey) return
     if (!slotInitialized) {
       setToast(
-        'Initialize the shared slot first: slot authority opens Studio → Initialize (see VITE_STAKE_SLOT_AUTHORITY).',
+        'Initialize the shared slot first: slot authority opens Dashboard → Initialize (see VITE_STAKE_SLOT_AUTHORITY).',
       )
       return
     }
@@ -218,7 +218,7 @@ export function FanSceneBoard() {
     if (!active || !connected || !publicKey) return
     if (!slotInitialized) {
       setToast(
-        'Initialize the shared slot first: slot authority opens Studio → Initialize (see VITE_STAKE_SLOT_AUTHORITY).',
+        'Initialize the shared slot first: slot authority opens Dashboard → Initialize (see VITE_STAKE_SLOT_AUTHORITY).',
       )
       return
     }

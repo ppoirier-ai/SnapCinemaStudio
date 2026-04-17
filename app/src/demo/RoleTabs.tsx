@@ -3,7 +3,7 @@ import type { DemoRole } from './types'
 type Props = {
   role: DemoRole
   onChange: (r: DemoRole) => void
-  /** If set, only these roles appear (e.g. Studio hides Scenes — use Scene in menu). */
+  /** If set, only these roles appear (e.g. Dashboard hides Scenes — use Scene in menu). */
   roles?: DemoRole[]
 }
 

@@ -255,7 +255,7 @@ export function WatchPage() {
           <p className="muted watch-curate-hint" role="note">
             The shared demo slot is not initialized on this cluster yet. A platform
             admin must connect the <strong>slot authority</strong> wallet and run{' '}
-            <strong>Studio → Initialize</strong> once (see{' '}
+            <strong>Dashboard → Initialize</strong> once (see{' '}
             <code>VITE_STAKE_SLOT_AUTHORITY</code> in <code>.env.example</code>).
           </p>
         )}
@@ -266,10 +266,9 @@ export function WatchPage() {
           currentSceneKeyHex &&
           !sceneReady && (
             <p className="muted watch-curate-hint" role="note">
-              This clip is not registered on-chain yet. The <strong>slot authority</strong>{' '}
-              should add or confirm the YouTube URL in the wallet menu <strong>Scene</strong>{' '}
-              page, then run <strong>Register missing scenes on-chain</strong> from{' '}
-              <strong>Studio</strong> so playable cells get <code>register_scene</code>.
+              This clip is not registered on-chain yet. Open the wallet menu{' '}
+              <strong>Scene</strong> page, pick this movie, and save the YouTube URL so a
+              wallet can run <code>register_scene</code> for this cell (rent).
             </p>
           )}
         {connected && chainSynced && (

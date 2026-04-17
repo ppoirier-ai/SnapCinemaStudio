@@ -26,7 +26,7 @@ On-chain **proof-of-curation** primitive for SnapCinema Studio. Full mechanics a
 
 ## Web demo: shared slot (Watch)
 
-The Vite app keys the demo slot by `(authority, slot_id)`. For **Watch**, set **`VITE_STAKE_SLOT_AUTHORITY`** in `app/.env` to the **base58 pubkey** of the wallet that will run **Studio → Admin → Initialize** once. Every viewer then uses that same slot for ranks and stakes while signing only as **position owner**. Omit the variable for local solo use (connected wallet is both authority and staker). See `app/.env.example`.
+The Vite app keys the demo slot by `(authority, slot_id)`. For **Watch**, set **`VITE_STAKE_SLOT_AUTHORITY`** in `app/.env` to the **base58 pubkey** of the wallet that will run **Dashboard → Initialize** once. Every viewer then uses that same slot for ranks and stakes while signing only as **position owner**. Omit the variable for local solo use (connected wallet is both authority and staker). See `app/.env.example`.
 
 ## Vault vs external DeFi
 

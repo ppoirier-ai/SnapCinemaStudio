@@ -45,7 +45,7 @@ export function StudioDemoPage() {
   return (
     <main className="studio studio-demo-page">
       <div className="studio-demo-intro">
-        <h1 className="studio-demo-title">Studio</h1>
+        <h1 className="studio-demo-title">Dashboard</h1>
         <p className="muted studio-demo-tagline">
           Platform admin: deploy and initialize the shared slot and yield tools. Contributors
           register scenes when they save YouTube URLs. Viewers use{' '}

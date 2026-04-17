@@ -9,7 +9,7 @@ export function AppHeader({ variant }: Props) {
   return (
     <header className="app-topbar">
       <Link to={homeTo} className="app-brand">
-        SnapCinema Studio
+        SnapCinema Dashboard
       </Link>
       <WalletMenu variant={variant} />
     </header>

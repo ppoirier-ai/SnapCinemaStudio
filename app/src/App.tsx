@@ -27,7 +27,8 @@ export default function App() {
               </Suspense>
             }
           />
-          <Route path="/studio" element={<StudioDemoPage />} />
+          <Route path="/dashboard" element={<StudioDemoPage />} />
+          <Route path="/studio" element={<Navigate to="/dashboard" replace />} />
           <Route path="/contribute" element={<ContributePage />} />
           <Route path="/account" element={<AccountPage />} />
         </Route>

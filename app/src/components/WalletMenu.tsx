@@ -70,12 +70,12 @@ export function WalletMenu({ variant }: Props) {
           </NavLink>
           {isPlatformOwner(publicKey) && (
             <NavLink
-              to="/studio"
+              to="/dashboard"
               className={navClass}
               role="menuitem"
               onClick={() => setOpen(false)}
             >
-              Studio
+              Dashboard
             </NavLink>
           )}
           <NavLink
