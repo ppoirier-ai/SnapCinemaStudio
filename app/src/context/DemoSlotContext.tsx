@@ -109,7 +109,9 @@ type DemoSlotValue = {
   onSetup: () => void
   onStakeUp: (sceneKeyHex: string, lamports: bigint) => void
   onStakeDown: (sceneKeyHex: string, lamports: bigint) => void
-  onUnstake: (sceneKeyHex: string) => void
+  onUnstake: (sceneKeyHex: string) => Promise<void>
+  /** Unstake several scenes in one `run` (single busy + refresh). Order is caller-defined (e.g. lowest ROI first). */
+  onUnstakeLowestRoiScenes: (sceneKeyHexes: string[]) => Promise<void>
   /** MVP: curator revenue distribution is deferred for per-scene accounts. */
   onDeposit: (_sceneKeyHex: string, _lamports: bigint) => void
   onClaim: (_sceneKeyHex: string) => void
@@ -729,8 +731,8 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
       append('OK: yield treasury set to this wallet (use same keypair for the immediate-yield worker).')
     })
 
-  const onUnstake = (sceneKeyHexArg: string) =>
-    run(`unstake_scene ${sceneKeyHexArg.slice(0, 10)}…`, async () => {
+  const unstakeSceneOnce = useCallback(
+    async (sceneKeyHexArg: string) => {
       if (!slotAuthorityPk) throw new Error('Missing slot authority')
       const sk = hexToSceneKeyBytes(sceneKeyHexArg)
       const slot = slotPda(slotAuthorityPk, DEMO_SLOT_ID)
@@ -792,7 +794,30 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
           ),
         ],
       )
+    },
+    [
+      connection,
+      isInstantSessionUsable,
+      publicKey,
+      signTransaction,
+      slotAuthorityPk,
+    ],
+  )
+
+  const onUnstake = (sceneKeyHexArg: string) =>
+    run(`unstake_scene ${sceneKeyHexArg.slice(0, 10)}…`, () =>
+      unstakeSceneOnce(sceneKeyHexArg),
+    )
+
+  const onUnstakeLowestRoiScenes = (sceneKeyHexes: string[]) => {
+    const uniq = [...new Set(sceneKeyHexes.filter(Boolean))]
+    if (uniq.length === 0) return Promise.resolve()
+    return run(`Unstake ${uniq.length} scene(s) (lowest return)`, async () => {
+      for (const hex of uniq) {
+        await unstakeSceneOnce(hex)
+      }
     })
+  }
 
   const onDeposit = (sceneKeyHex: string, lamports: bigint) => {
     void sceneKeyHex
@@ -973,6 +998,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
     onStakeUp,
     onStakeDown,
     onUnstake,
+    onUnstakeLowestRoiScenes,
     onDeposit,
     onClaim,
     onClaimAll,

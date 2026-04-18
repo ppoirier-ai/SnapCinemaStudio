@@ -1710,13 +1710,240 @@
   color: var(--st-heading);
 }
 
-.account-route-panel {
-  max-width: 40rem;
-}
-
 .account-route > .panel + .panel {
   margin-top: 1rem;
-  max-width: 40rem;
+  max-width: min(56rem, 100%);
+}
+
+.account-route-panel {
+  max-width: min(56rem, 100%);
+}
+
+.account-refresh-btn {
+  margin-top: 0.35rem;
+}
+
+.account-summary-strip {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--st-border);
+}
+
+.account-summary-heading {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--st-heading);
+}
+
+.account-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+.account-summary-card {
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--st-radius-sm);
+  border: 1px solid var(--st-border);
+  background: var(--st-surface-2);
+}
+
+.account-summary-card-preview {
+  border-style: dashed;
+}
+
+.account-summary-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--st-muted);
+  margin-bottom: 0.35rem;
+}
+
+.account-summary-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--st-heading);
+}
+
+.account-summary-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.account-preview-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--st-accent-dim);
+  color: var(--st-heading);
+  vertical-align: middle;
+}
+
+.account-claim-row {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem 1rem;
+}
+
+.account-claim-note {
+  flex: 1 1 12rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  max-width: 28rem;
+}
+
+.account-details-breakdown {
+  margin-top: 1.25rem;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--st-border);
+}
+
+.account-details-summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--st-heading);
+  list-style: none;
+}
+
+.account-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-details-summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.35rem;
+  transition: transform 0.15s ease;
+}
+
+.account-details-breakdown[open] .account-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.account-breakdown-inner {
+  margin-top: 0.75rem;
+}
+
+.account-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.account-sort-label,
+.account-batch-unstake label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--st-muted);
+}
+
+.account-sort-select,
+.account-batch-n {
+  margin-top: 0.15rem;
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--st-border);
+  background: var(--st-surface);
+  color: var(--st-body);
+}
+
+.account-batch-unstake {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.account-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--st-radius-sm);
+  border: 1px solid var(--st-border);
+}
+
+.account-scene-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.account-scene-table th,
+.account-scene-table td {
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid var(--st-border);
+  vertical-align: top;
+}
+
+.account-scene-table th {
+  background: var(--st-surface-2);
+  color: var(--st-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.account-scene-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.account-scene-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 9rem;
+}
+
+.account-scene-sub {
+  font-size: 0.75rem;
+}
+
+.account-scene-hex {
+  font-size: 0.7rem;
+  word-break: break-all;
+}
+
+.account-revenue-details {
+  margin-top: 1rem;
+  max-width: min(56rem, 100%);
+}
+
+.account-revenue-summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--st-heading);
+  list-style: none;
+  padding: 0.5rem 0;
+}
+
+.account-revenue-summary::-webkit-details-marker {
+  display: none;
+}
+
+.account-revenue-summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 0.35rem;
+}
+
+.account-revenue-details[open] .account-revenue-summary::before {
+  content: '▾';
+}
+
+.account-revenue-body {
+  padding: 0 0 0.75rem;
 }
 
 /* Fan scene board — time (columns) × alternatives (rows) */

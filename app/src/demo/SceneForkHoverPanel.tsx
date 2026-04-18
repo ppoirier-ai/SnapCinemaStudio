@@ -14,7 +14,7 @@ export type SceneForkHoverPanelProps = {
   busy: boolean
   scene: S | null
   position: P | null
-  onUnstake: (sceneKeyHex: string) => void
+  onUnstake: (sceneKeyHex: string) => void | Promise<void>
   /** Optional inline styles on the panel root (in-page tooltips only). */
   rootStyle?: CSSProperties
   rootClassName?: string
