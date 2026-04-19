@@ -3,6 +3,37 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useDemoSlot } from '../context/DemoSlotContext'
 import { useMovies, type Movie } from '../context/SceneBoardContext'
 
+function ProjectConceptReadOnlyFields({ movie }: { movie: Movie }) {
+  return (
+    <>
+      <div className="creator-project-locked-block">
+        <span className="field-label">Title</span>
+        <p className="creator-project-locked-title">
+          {movie.title.trim() ? (
+            movie.title
+          ) : (
+            <span className="muted empty-hint">No title</span>
+          )}
+        </p>
+      </div>
+      <div className="creator-project-locked-block">
+        <span className="field-label">Description</span>
+        <div className="creator-project-locked-description">
+          {movie.description.trim() ? (
+            movie.description.split('\n').map((line, i) => (
+              <p key={i} className="creator-project-locked-desc-line">
+                {line || '\u00a0'}
+              </p>
+            ))
+          ) : (
+            <p className="muted empty-hint">No description</p>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
 function ConceptEditor({
   movie,
   wallet,
@@ -32,30 +63,7 @@ function ConceptEditor({
       </h3>
       {locked ? (
         <div className="creator-project-locked">
-          <div className="creator-project-locked-block">
-            <span className="field-label">Title</span>
-            <p className="creator-project-locked-title">
-              {movie.title.trim() ? (
-                movie.title
-              ) : (
-                <span className="muted empty-hint">No title</span>
-              )}
-            </p>
-          </div>
-          <div className="creator-project-locked-block">
-            <span className="field-label">Description</span>
-            <div className="creator-project-locked-description">
-              {movie.description.trim() ? (
-                movie.description.split('\n').map((line, i) => (
-                  <p key={i} className="creator-project-locked-desc-line">
-                    {line || '\u00a0'}
-                  </p>
-                ))
-              ) : (
-                <p className="muted empty-hint">No description</p>
-              )}
-            </div>
-          </div>
+          <ProjectConceptReadOnlyFields movie={movie} />
           <button
             type="button"
             className="btn btn-secondary"
@@ -187,10 +195,18 @@ export function CreatorProjectForm() {
           {selectedMine && selected && <ConceptEditor movie={selected} wallet={wallet} />}
 
           {creatorSelectedMovieId && selected && !selectedMine && (
-            <p className="muted creator-community-hint">
-              Title and description are locked to the creator&apos;s wallet. You can still add
-              or edit scene cuts in Scene management.
-            </p>
+            <div className="creator-concept-editor nested-concept-panel">
+              <h3 className="creator-concept-editor-title">
+                Project concept
+              </h3>
+              <div className="creator-project-locked">
+                <ProjectConceptReadOnlyFields movie={selected} />
+              </div>
+              <p className="muted creator-community-hint">
+                Only the creator&apos;s wallet can change title and description. You can still add
+                or edit scene cuts in Scene management.
+              </p>
+            </div>
           )}
         </>
       )}
