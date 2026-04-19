@@ -2667,95 +2667,238 @@
   color: var(--st-body, #c8cad4);
 }
 
-/* Mailing list signup (landing + watch) */
-.landing-section-mailing .mailing-list-signup {
-  max-width: 32rem;
+/* Mailing list — tinted band + form (landing uses :root tokens; watch uses .studio tokens) */
+.landing-section-mailing {
+  margin: 0.5rem 0 0;
+  padding: 2.25rem 1.5rem 2.5rem;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--accent-bg) 180%, var(--bg)) 0%,
+    color-mix(in srgb, var(--bg) 92%, var(--accent) 8%) 45%,
+    color-mix(in srgb, var(--bg) 97%, var(--accent) 3%) 100%
+  );
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px color-mix(in srgb, var(--text-h) 4%, transparent);
 }
 
-.mailing-list-signup-title {
-  font-size: 1rem;
-  margin: 0 0 0.75rem;
-  color: var(--st-heading);
+.landing-section-mailing.landing-section {
+  border-bottom: none;
 }
 
-.mailing-list-signup-lead {
-  margin: 0 0 1rem;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.mailing-list-signup-form {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.mailing-list-signup-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  width: 100%;
-  max-width: 22rem;
-}
-
-.mailing-list-signup-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: var(--st-muted);
-}
-
-.mailing-list-signup-label span:first-child {
-  font-weight: 600;
-  color: var(--st-body);
-}
-
-.mailing-list-signup-input,
-.mailing-list-signup-select {
-  padding: 0.45rem 0.6rem;
-  border-radius: var(--st-radius-sm);
-  border: 1px solid var(--st-border-strong);
-  background: var(--st-surface);
-  color: var(--st-body);
-  font-size: 0.9rem;
-}
-
-.mailing-list-signup-success {
-  margin: 0;
-  color: var(--st-accent, #8b9cff);
-  font-weight: 600;
-}
-
-.mailing-list-signup-error {
-  margin: 0;
-  font-size: 0.85rem;
-  color: #f07178;
+.landing-section-mailing .landing-section-mailing-title {
+  margin-bottom: 1rem;
 }
 
 .watch-footer-mailing {
   width: 100%;
   max-width: 64rem;
   margin: 0 auto;
-  padding: 1.5rem 1rem 2rem;
-  border-top: 1px solid var(--st-border);
+  padding: 2rem 1.25rem 2.25rem;
+  border-radius: var(--st-radius);
+  border: 1px solid color-mix(in srgb, var(--st-accent) 42%, var(--st-border));
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--st-accent) 22%, var(--st-page)) 0%,
+    color-mix(in srgb, var(--st-surface) 94%, var(--st-accent) 6%) 50%,
+    color-mix(in srgb, var(--st-surface-2) 88%, var(--st-accent) 12%) 100%
+  );
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.2),
+    0 0 0 1px color-mix(in srgb, var(--st-heading) 5%, transparent);
 }
 
 .watch-footer-mailing-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--st-muted);
-  margin: 0 0 0.75rem;
+  font-family: var(--heading, var(--sans));
+  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--st-heading);
+  margin: 0 0 0.35rem;
 }
 
-.watch-footer-mailing .mailing-list-signup-title {
-  font-size: 1rem;
-  text-transform: none;
-  letter-spacing: normal;
+.landing-section-mailing .mailing-list-signup,
+.watch-footer-mailing .mailing-list-signup {
+  max-width: 36rem;
+}
+
+.mailing-list-signup-eyebrow {
+  margin: 0 0 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent, var(--st-accent)) 85%, var(--text-h, var(--st-heading)) 15%);
+}
+
+.watch-footer-mailing .mailing-list-signup-eyebrow {
+  color: color-mix(in srgb, var(--st-accent) 80%, var(--st-heading) 20%);
+}
+
+.mailing-list-signup-lead {
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text, var(--st-body));
+  opacity: 0.95;
+}
+
+.watch-footer-mailing .mailing-list-signup-lead {
+  color: var(--st-body);
+  opacity: 1;
+}
+
+.mailing-list-signup-lead strong {
+  color: var(--text-h, var(--st-heading));
+  font-weight: 600;
+}
+
+.mailing-list-signup-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.mailing-list-signup-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.mailing-list-signup-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text, var(--st-body));
+}
+
+.mailing-list-signup-label span:first-child {
+  color: var(--text-h, var(--st-heading));
+}
+
+.mailing-list-signup-input,
+.mailing-list-signup-select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border, var(--st-border-strong));
+  background: var(--bg, var(--st-surface));
+  color: var(--text-h, var(--st-heading));
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.watch-footer-mailing .mailing-list-signup-input,
+.watch-footer-mailing .mailing-list-signup-select {
+  background: color-mix(in srgb, var(--st-surface) 85%, var(--st-page) 15%);
+  border-color: var(--st-border-strong);
   color: var(--st-heading);
+}
+
+.mailing-list-signup-input::placeholder {
+  color: color-mix(in srgb, var(--text) 65%, transparent);
+}
+
+.watch-footer-mailing .mailing-list-signup-input::placeholder {
+  color: var(--st-muted);
+}
+
+.mailing-list-signup-input:hover,
+.mailing-list-signup-select:hover {
+  border-color: color-mix(in srgb, var(--accent, var(--st-accent)) 55%, var(--border, var(--st-border-strong)));
+}
+
+.mailing-list-signup-input:focus-visible,
+.mailing-list-signup-select:focus-visible {
+  outline: none;
+  border-color: var(--accent, var(--st-accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, var(--st-accent)) 28%, transparent);
+}
+
+.mailing-list-signup .btn {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 0.65rem 1.35rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.mailing-list-signup .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.landing .mailing-list-signup .btn-primary {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--accent) 100%, #9333ea) 0%,
+    color-mix(in srgb, var(--accent) 75%, #6366f1) 100%
+  );
+  color: #fff;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.landing .mailing-list-signup .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.studio .mailing-list-signup .btn-primary {
+  background: linear-gradient(165deg, var(--st-accent) 0%, #8b5cf6 100%);
+  color: #0b0b0f;
+}
+
+@media (prefers-color-scheme: light) {
+  .studio .mailing-list-signup .btn-primary {
+    color: #fff;
+  }
+}
+
+.studio .mailing-list-signup .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.mailing-list-signup-success {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-bg, var(--st-accent-dim)) 100%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--st-accent)) 35%, transparent);
+  color: var(--text-h, var(--st-heading));
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.mailing-list-signup-error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #f43f5e;
+}
+
+.watch-footer-mailing .mailing-list-signup-error {
+  color: #fb7185;
 }
 
 /* Admin: mailing list table */

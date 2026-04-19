@@ -63,8 +63,8 @@ export function MailingListSignup({ source, className }: Props) {
 
   return (
     <div className={rootClass}>
-      <h2 className="mailing-list-signup-title">Stay in the loop</h2>
-      <p className="muted mailing-list-signup-lead">
+      <p className="mailing-list-signup-eyebrow">Join the waitlist</p>
+      <p className="mailing-list-signup-lead">
         We&apos;ll contact you when SnapCinema moves to <strong>mainnet</strong>. Until
         then, you can try the app on <strong>Solana devnet</strong>: there is{' '}
         <strong>no real money</strong> involved. Testing wallet flows requires{' '}

@@ -214,8 +214,8 @@ export function LandingPage() {
           className="landing-section landing-section-mailing"
           aria-labelledby="mailing-heading"
         >
-          <h2 id="mailing-heading" className="landing-section-title">
-            Get notified at mainnet
+          <h2 id="mailing-heading" className="landing-section-title landing-section-mailing-title">
+            Get Notified Once We Go Live
           </h2>
           <MailingListSignup source="landing" />
         </section>

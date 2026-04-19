@@ -407,7 +407,7 @@ export function WatchPage() {
 
       <footer className="watch-footer-mailing" aria-labelledby="watch-mailing-heading">
         <h2 id="watch-mailing-heading" className="watch-footer-mailing-title">
-          Get notified at mainnet
+          Get Notified Once We Go Live
         </h2>
         <MailingListSignup source="watch" />
       </footer>
