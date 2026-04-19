@@ -1,0 +1,13 @@
+---
+description: UX planning with Microsoft Clarity + in-repo findings
+alwaysApply: false
+---
+
+# Analytics-backed UX planning
+
+When planning or implementing **user-facing UI/UX changes** (navigation, onboarding, wallet flows, Watch/Dashboard/Contribute), read **[`docs/analytics/ux-findings.md`](docs/analytics/ux-findings.md)** first if it has been filled in for the current period.
+
+- Use **Microsoft Clarity** (project configured via `VITE_CLARITY_PROJECT_ID`) for session replay, heatmaps, and funnels; align proposed changes with tagged routes (`route`, `route_name`) and custom events documented in that file.
+- Do not assume metrics sync automatically into git; treat `docs/analytics/ux-findings.md` as the hand-maintained bridge for agent-readable priorities and hypotheses.
+
+For **StakeToCurate**, **Watch** stakes, **DemoSlotContext**, vault vs wallet DeFi, or **admin** slot/scene setup, also follow **`docs/stake-curation-flow.md`**.

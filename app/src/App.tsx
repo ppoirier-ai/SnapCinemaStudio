@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { ClarityRouteTracker } from './analytics/ClarityRouteTracker'
 import { AuthedShell } from './layout/AuthedShell'
 import { AccountPage } from './pages/AccountPage'
 import { ContributePage } from './pages/ContributePage'
@@ -16,6 +17,7 @@ const WatchPage = lazy(async () => {
 export default function App() {
   return (
     <BrowserRouter>
+      <ClarityRouteTracker />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route element={<AuthedShell />}>

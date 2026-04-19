@@ -11,13 +11,18 @@ import './index.css'
 import App from './App.tsx'
 import { RootErrorBoundary } from './RootErrorBoundary.tsx'
 import { DEFAULT_RPC } from './stakeToCurate/client'
+import { initClarity } from './analytics/clarity'
+import { ClarityWalletTracker } from './analytics/ClarityWalletTracker'
 
-function Root() {
+initClarity()
+
+export function Root() {
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [])
   return (
     <ConnectionProvider endpoint={DEFAULT_RPC}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
+          <ClarityWalletTracker />
           <App />
         </WalletModalProvider>
       </WalletProvider>
