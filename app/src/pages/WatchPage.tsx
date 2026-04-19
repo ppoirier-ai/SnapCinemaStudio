@@ -15,6 +15,7 @@ import {
   type WatchPlaylistClip,
 } from '../lib/watchPlaylist'
 import { youtubeThumbnailUrl } from '../lib/youtubeUrl'
+import { MailingListSignup } from '../components/MailingListSignup'
 
 function posterForMovie(m: Movie): string | null {
   const id = getFirstYoutubeVideoIdFromMovie(m)
@@ -403,6 +404,13 @@ export function WatchPage() {
           </ul>
         )}
       </section>
+
+      <footer className="watch-footer-mailing" aria-labelledby="watch-mailing-heading">
+        <h2 id="watch-mailing-heading" className="watch-footer-mailing-title">
+          Get notified at mainnet
+        </h2>
+        <MailingListSignup source="watch" />
+      </footer>
     </main>
   )
 }

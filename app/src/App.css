@@ -2666,3 +2666,141 @@
   padding: 2rem;
   color: var(--st-body, #c8cad4);
 }
+
+/* Mailing list signup (landing + watch) */
+.landing-section-mailing .mailing-list-signup {
+  max-width: 32rem;
+}
+
+.mailing-list-signup-title {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+  color: var(--st-heading);
+}
+
+.mailing-list-signup-lead {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mailing-list-signup-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.mailing-list-signup-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+  max-width: 22rem;
+}
+
+.mailing-list-signup-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--st-muted);
+}
+
+.mailing-list-signup-label span:first-child {
+  font-weight: 600;
+  color: var(--st-body);
+}
+
+.mailing-list-signup-input,
+.mailing-list-signup-select {
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--st-radius-sm);
+  border: 1px solid var(--st-border-strong);
+  background: var(--st-surface);
+  color: var(--st-body);
+  font-size: 0.9rem;
+}
+
+.mailing-list-signup-success {
+  margin: 0;
+  color: var(--st-accent, #8b9cff);
+  font-weight: 600;
+}
+
+.mailing-list-signup-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #f07178;
+}
+
+.watch-footer-mailing {
+  width: 100%;
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+  border-top: 1px solid var(--st-border);
+}
+
+.watch-footer-mailing-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--st-muted);
+  margin: 0 0 0.75rem;
+}
+
+.watch-footer-mailing .mailing-list-signup-title {
+  font-size: 1rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--st-heading);
+}
+
+/* Admin: mailing list table */
+.mailing-list-admin-panel .mailing-list-admin-count {
+  margin: 0.75rem 0 0.5rem;
+}
+
+.mailing-list-admin-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: #f07178;
+}
+
+.mailing-list-admin-scroll {
+  margin-top: 0.75rem;
+  max-height: min(24rem, 55vh);
+  overflow: auto;
+  border: 1px solid var(--st-border);
+  border-radius: var(--st-radius-sm);
+  background: var(--st-surface-2);
+}
+
+.mailing-list-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.mailing-list-admin-table th,
+.mailing-list-admin-table td {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--st-border);
+  vertical-align: top;
+}
+
+.mailing-list-admin-table th {
+  position: sticky;
+  top: 0;
+  background: var(--st-surface);
+  z-index: 1;
+  font-weight: 600;
+  color: var(--st-heading);
+}
+
+.mailing-list-admin-table tbody tr:last-child td {
+  border-bottom: none;
+}

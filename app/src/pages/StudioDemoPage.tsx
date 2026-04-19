@@ -5,6 +5,7 @@ import { ChainPanel } from '../demo/ChainPanel'
 import { InitPanel } from '../demo/InitPanel'
 import { LogPanel } from '../demo/LogPanel'
 import { PositionsPanel } from '../demo/PositionsPanel'
+import { MailingListAdminPanel } from '../demo/MailingListAdminPanel'
 import { AdminYieldPanel } from '../components/yield/AdminYieldPanel'
 import { isPlatformOwner } from '../config/platformOwner'
 import { useDemoSlot } from '../context/DemoSlotContext'
@@ -59,6 +60,8 @@ export function StudioDemoPage() {
           .
         </p>
       </div>
+
+      <MailingListAdminPanel />
 
       <ChainPanel
         demoSlotId={DEMO_SLOT_ID}

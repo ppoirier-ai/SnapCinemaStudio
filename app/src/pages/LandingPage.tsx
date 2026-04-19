@@ -8,6 +8,7 @@ import { Navigate } from 'react-router-dom'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletModalButton } from '@solana/wallet-adapter-react-ui'
 import { AppHeader } from '../components/AppHeader'
+import { MailingListSignup } from '../components/MailingListSignup'
 
 const BANNER_VIDEO = '/banner.mp4'
 
@@ -207,6 +208,16 @@ export function LandingPage() {
               </p>
             </details>
           </div>
+        </section>
+
+        <section
+          className="landing-section landing-section-mailing"
+          aria-labelledby="mailing-heading"
+        >
+          <h2 id="mailing-heading" className="landing-section-title">
+            Get notified at mainnet
+          </h2>
+          <MailingListSignup source="landing" />
         </section>
 
         <section
