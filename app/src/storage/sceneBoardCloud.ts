@@ -3,7 +3,7 @@ import { isSceneBoardCloudPayloadV1, type SceneBoardCloudPayloadV1 } from './sce
 import { sceneBoardCloudConfigured } from './sceneBoardEnv'
 import {
   createSceneBoardSupabase,
-  fetchSceneBoardForWallet,
+  fetchAllSceneBoardRows,
 } from './sceneBoardSupabase'
 import { sliceStateForWallet } from './sceneBoardMerge'
 import type { SceneBoardRemoteRow } from './sceneBoardMerge'
@@ -12,16 +12,13 @@ import { ensureBoardApiSession, sceneBoardApiUrl } from './sceneBoardSession'
 export { sceneBoardCloudConfigured, sceneBoardPublisherWallet } from './sceneBoardEnv'
 export { mergeRemoteSceneBoardRows, sliceStateForWallet } from './sceneBoardMerge'
 
-export async function loadRemoteSceneBoardRows(
-  wallets: string[],
-): Promise<SceneBoardRemoteRow[]> {
+/** Loads every creator row so the authority (same wallet as publisher) still merges other wallets’ movies. */
+export async function loadRemoteSceneBoardRows(): Promise<SceneBoardRemoteRow[]> {
   const client = createSceneBoardSupabase()
   if (!client) return []
-  const uniq = [...new Set(wallets.filter(Boolean))]
+  const rows = await fetchAllSceneBoardRows(client)
   const out: SceneBoardRemoteRow[] = []
-  for (const w of uniq) {
-    const row = await fetchSceneBoardForWallet(client, w)
-    if (!row) continue
+  for (const row of rows) {
     if (!isSceneBoardCloudPayloadV1(row.payload)) continue
     out.push({ creator_wallet: row.creator_wallet, payload: row.payload })
   }

@@ -15,7 +15,6 @@ import {
   mergeRemoteSceneBoardRows,
   pushSceneBoardForWallet,
   sceneBoardCloudConfigured,
-  sceneBoardPublisherWallet,
 } from '../storage/sceneBoardCloud'
 import { readLocalMeta, writeLocalMeta } from '../storage/sceneBoardMeta'
 import type { Movie, MoviesUIState, SceneColumn } from '../storage/sceneBoardModel'
@@ -242,17 +241,13 @@ export function SceneBoardProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!sceneBoardCloudConfigured() || !wallet) return
-    const publisher = sceneBoardPublisherWallet()
-    const targets: string[] = []
-    if (publisher) targets.push(publisher)
-    if (!targets.includes(wallet)) targets.push(wallet)
-    const key = targets.sort().join('|')
+    const key = `${wallet}|all-scene-boards`
     if (cloudHydratedKey.current === key) return
     cloudHydratedKey.current = key
 
     let cancelled = false
     void (async () => {
-      const remotes = await loadRemoteSceneBoardRows(targets)
+      const remotes = await loadRemoteSceneBoardRows()
       if (cancelled) return
 
       const empty: MoviesUIState = {

@@ -44,3 +44,18 @@ export async function fetchSceneBoardForWallet(
   if (!data) return null
   return data as SceneBoardDbRow
 }
+
+/** All creator rows; used so the slot authority sees movies from every contributor wallet. */
+export async function fetchAllSceneBoardRows(
+  client: NonNullable<ReturnType<typeof createSceneBoardSupabase>>,
+): Promise<SceneBoardDbRow[]> {
+  const { data, error } = await client
+    .from('scene_boards')
+    .select('creator_wallet, payload, updated_at')
+
+  if (error) {
+    console.warn('[scene-board] Supabase read all error:', error.message)
+    return []
+  }
+  return (data ?? []) as SceneBoardDbRow[]
+}
