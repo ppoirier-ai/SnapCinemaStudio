@@ -1,6 +1,11 @@
 /**
  * Vercel + Supabase integration often sets `NEXT_PUBLIC_*` and `*_PUBLISHABLE_KEY`;
- * this app historically used `VITE_*` and `*_ANON_KEY`. We accept both.
+ * this app historically used `VITE_*` and `*_ANON_KEY`. We accept both. Some
+ * integration presets only expose `SUPABASE_ANON_KEY` / `SUPABASE_PUBLISHABLE_KEY`
+ * (no prefix); those are checked via `process.env` (e.g. `vercel dev` / server).
+ * For a production Vite build, the publishable/anon value must also exist as
+ * `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` so
+ * the browser bundle can read it.
  */
 function getImportMetaEnv(): Record<string, string> | undefined {
   return typeof import.meta !== 'undefined'
@@ -35,6 +40,8 @@ export function supabaseAnonKeyForClient(): string | undefined {
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
     'VITE_SUPABASE_PUBLISHABLE_KEY',
     'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+    'SUPABASE_ANON_KEY',
+    'SUPABASE_PUBLISHABLE_KEY',
   ])
 }
 
