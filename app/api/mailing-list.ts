@@ -1,6 +1,7 @@
 import { verifyAsync } from '@noble/ed25519'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { parseVercelJsonBody } from './lib/parseVercelJsonBody'
 import {
   getSupabaseServiceRoleKey,
   getSupabaseUrlForServer,
@@ -33,21 +34,6 @@ function cors(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
 }
 
-function getJsonBody(req: VercelRequest): Record<string, unknown> {
-  const b = req.body
-  if (b && typeof b === 'object' && !Array.isArray(b)) {
-    return b as Record<string, unknown>
-  }
-  if (typeof b === 'string') {
-    try {
-      return JSON.parse(b || '{}') as Record<string, unknown>
-    } catch {
-      return {}
-    }
-  }
-  return {}
-}
-
 function getPlatformOwnerPubkeyString(): string {
   return (
     process.env.PLATFORM_OWNER_PUBKEY?.trim() ||
@@ -60,38 +46,46 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
-  cors(res)
-  if (req.method === 'OPTIONS') {
-    res.status(204).end()
-    return
+  try {
+    cors(res)
+    if (req.method === 'OPTIONS') {
+      res.status(204).end()
+      return
+    }
+
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST, OPTIONS')
+      res.status(405).json({ error: 'Method not allowed' })
+      return
+    }
+
+    const supabaseUrl = getSupabaseUrlForServer()
+    const serviceKey = getSupabaseServiceRoleKey()
+
+    if (!supabaseUrl || !serviceKey) {
+      res.status(503).json({
+        error:
+          'Server missing Supabase URL or service key (e.g. SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)',
+      })
+      return
+    }
+
+    const supabase: ServiceDb = createClient(supabaseUrl, serviceKey)
+    const body = parseVercelJsonBody(req)
+
+    if (body.op === 'list') {
+      await handleList(res, supabase, body)
+      return
+    }
+
+    await handleSignup(res, supabase, body)
+  } catch (e) {
+    console.error('[mailing-list] unhandled', e)
+    if (res.headersSent) return
+    res
+      .status(500)
+      .json({ error: e instanceof Error ? e.message : 'Internal server error' })
   }
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST, OPTIONS')
-    res.status(405).json({ error: 'Method not allowed' })
-    return
-  }
-
-  const supabaseUrl = getSupabaseUrlForServer()
-  const serviceKey = getSupabaseServiceRoleKey()
-
-  if (!supabaseUrl || !serviceKey) {
-    res.status(503).json({
-      error:
-        'Server missing Supabase URL or service key (e.g. SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)',
-    })
-    return
-  }
-
-  const supabase: ServiceDb = createClient(supabaseUrl, serviceKey)
-  const body = getJsonBody(req)
-
-  if (body.op === 'list') {
-    await handleList(res, supabase, body)
-    return
-  }
-
-  await handleSignup(res, supabase, body)
 }
 
 async function handleSignup(
@@ -195,7 +189,14 @@ async function handleList(
   }
 
   const msgBytes = Buffer.from(message, 'utf8')
-  const sigOk = await verifyAsync(sig, msgBytes, walletPk.toBytes())
+  let sigOk: boolean
+  try {
+    sigOk = await verifyAsync(sig, msgBytes, walletPk.toBytes())
+  } catch (e) {
+    console.error('[mailing-list] verifyAsync', e)
+    res.status(400).json({ error: 'Signature verification error' })
+    return
+  }
   if (!sigOk) {
     res.status(401).json({ error: 'Signature verification failed' })
     return
