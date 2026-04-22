@@ -1,9 +1,9 @@
 import { verifyAsync } from '@noble/ed25519'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { PublicKey } from '@solana/web3.js'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { parseVercelJsonBody } from './lib/parseVercelJsonBody'
+import { decodeBase58Ed25519Pubkey } from './lib/solanaPubkeyBytes'
 import {
   getSceneBoardJwtSecret,
   getSupabaseServiceRoleKey,
@@ -146,10 +146,8 @@ export default async function handler(
         return
       }
 
-      let pub: PublicKey
-      try {
-        pub = new PublicKey(wallet)
-      } catch {
+      const pub = decodeBase58Ed25519Pubkey(wallet)
+      if (!pub) {
         res.status(400).json({ error: 'Invalid wallet' })
         return
       }
@@ -169,7 +167,7 @@ export default async function handler(
       const msgBytes = Buffer.from(message, 'utf8')
       let ok: boolean
       try {
-        ok = await verifyAsync(sig, msgBytes, pub.toBytes())
+        ok = await verifyAsync(sig, msgBytes, pub)
       } catch (e) {
         console.error('[scene-board] verifyAsync', e)
         res.status(400).json({ error: 'Signature verification error' })

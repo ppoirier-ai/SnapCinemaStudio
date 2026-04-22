@@ -3,10 +3,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { parseVercelJsonBody } from './lib/parseVercelJsonBody'
 import {
+  decodeBase58Ed25519Pubkey,
+  ed25519PubkeyBytesEqual,
+} from './lib/solanaPubkeyBytes'
+import {
   getSupabaseServiceRoleKey,
   getSupabaseUrlForServer,
 } from './lib/supabaseServerEnv'
-import { PublicKey } from '@solana/web3.js'
 
 /**
  * Service client without generated `Database` types (mailing_list_signups lives only in SQL).
@@ -168,10 +171,8 @@ async function handleList(
     return
   }
 
-  let walletPk: PublicKey
-  try {
-    walletPk = new PublicKey(wallet)
-  } catch {
+  const walletBytes = decodeBase58Ed25519Pubkey(wallet)
+  if (!walletBytes) {
     res.status(400).json({ error: 'Invalid wallet' })
     return
   }
@@ -191,7 +192,7 @@ async function handleList(
   const msgBytes = Buffer.from(message, 'utf8')
   let sigOk: boolean
   try {
-    sigOk = await verifyAsync(sig, msgBytes, walletPk.toBytes())
+    sigOk = await verifyAsync(sig, msgBytes, walletBytes)
   } catch (e) {
     console.error('[mailing-list] verifyAsync', e)
     res.status(400).json({ error: 'Signature verification error' })
@@ -203,14 +204,12 @@ async function handleList(
   }
 
   const ownerStr = getPlatformOwnerPubkeyString()
-  let ownerPk: PublicKey
-  try {
-    ownerPk = new PublicKey(ownerStr)
-  } catch {
+  const ownerBytes = decodeBase58Ed25519Pubkey(ownerStr)
+  if (!ownerBytes) {
     res.status(500).json({ error: 'Invalid platform owner configuration' })
     return
   }
-  if (!walletPk.equals(ownerPk)) {
+  if (!ed25519PubkeyBytesEqual(walletBytes, ownerBytes)) {
     res.status(403).json({ error: 'Not platform owner' })
     return
   }
