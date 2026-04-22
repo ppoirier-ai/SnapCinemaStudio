@@ -23,7 +23,8 @@ export function getSupabaseServiceRoleKey(): string | undefined {
 }
 
 /**
- * HMAC secret for the scene board token in api/scene-board. Prefer
+ * HMAC secret for the scene board token in `api/scene-board-session` and
+ * `api/scene-board`. Prefer
  * `SCENE_BOARD_JWT_SECRET`; else use Supabase’s project JWT secret (not the anon key).
  */
 export function getSceneBoardJwtSecret(): string | undefined {

@@ -16,7 +16,7 @@ function readViteEnv(name: string): string | undefined {
   return undefined
 }
 
-/** Optional: full origin of deployed app for `/api/scene-board` when running Vite on :5173. */
+/** Optional: full origin of deployed app for `/api/scene-board*` when running Vite on :5173. */
 export function sceneBoardApiBase(): string {
   return readViteEnv('VITE_SCENE_BOARD_API_URL')?.replace(/\/$/, '') ?? ''
 }
@@ -63,7 +63,7 @@ export async function createBoardApiSession(
 ): Promise<string | null> {
   const message = `SnapCinema:scene-board:v1:${wallet}:${Date.now()}:${crypto.randomUUID()}`
   const sig = await signMessage(new TextEncoder().encode(message))
-  const res = await fetch(sceneBoardApiUrl('/api/scene-board'), {
+  const res = await fetch(sceneBoardApiUrl('/api/scene-board-session'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
