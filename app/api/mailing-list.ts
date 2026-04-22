@@ -1,6 +1,10 @@
 import { verifyAsync } from '@noble/ed25519'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import {
+  getSupabaseServiceRoleKey,
+  getSupabaseUrlForServer,
+} from './lib/supabaseServerEnv'
 import { PublicKey } from '@solana/web3.js'
 
 /**
@@ -68,12 +72,13 @@ export default async function handler(
     return
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL?.trim()
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  const supabaseUrl = getSupabaseUrlForServer()
+  const serviceKey = getSupabaseServiceRoleKey()
 
   if (!supabaseUrl || !serviceKey) {
     res.status(503).json({
-      error: 'Server missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY',
+      error:
+        'Server missing Supabase URL or service key (e.g. SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY)',
     })
     return
   }

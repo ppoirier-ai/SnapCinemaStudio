@@ -3,6 +3,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { PublicKey } from '@solana/web3.js'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import {
+  getSceneBoardJwtSecret,
+  getSupabaseServiceRoleKey,
+  getSupabaseUrlForServer,
+} from './lib/supabaseServerEnv'
 
 const MSG_RE =
   /^SnapCinema:scene-board:v1:([^:]+):(\d+):([0-9a-f-]{36})$/i
@@ -110,15 +115,14 @@ export default async function handler(
     return
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL?.trim()
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  const jwtSecret =
-    process.env.SCENE_BOARD_JWT_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+  const supabaseUrl = getSupabaseUrlForServer()
+  const serviceKey = getSupabaseServiceRoleKey()
+  const jwtSecret = getSceneBoardJwtSecret()
 
   if (!supabaseUrl || !serviceKey || !jwtSecret) {
     res.status(503).json({
-      error: 'Server missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or SCENE_BOARD_JWT_SECRET',
+      error:
+        'Server missing Supabase URL, service key, or JWT secret (e.g. SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_JWT_SECRET, optional SCENE_BOARD_JWT_SECRET)',
     })
     return
   }

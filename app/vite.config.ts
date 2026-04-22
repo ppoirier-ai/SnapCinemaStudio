@@ -41,6 +41,11 @@ globalThis.Buffer = ${marker};
 
 // https://vite.dev/config/
 export default defineConfig({
+  /**
+   * Vercel’s Supabase integration sets `NEXT_PUBLIC_*`; the app also supports `VITE_*`.
+   * Expose both so the client bundle can read URL + anon/publishable keys.
+   */
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   /** Directory that contains `index.html`. Keeps resolution stable if `vite` is run from the repo root. */
   root: appRoot,
   /**
