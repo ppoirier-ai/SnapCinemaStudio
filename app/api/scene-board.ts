@@ -1,15 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { parseVercelJsonBody } from './lib/parseVercelJsonBody'
+import { parseVercelJsonBody } from './lib/parseVercelJsonBody.js'
 import {
   isCloudPayloadV1,
   verifyBoardJwt,
-} from './lib/sceneBoardHmac'
+} from './lib/sceneBoardHmac.js'
 import {
   getSceneBoardJwtSecret,
   getSupabaseServiceRoleKey,
   getSupabaseUrlForServer,
-} from './lib/supabaseServerEnv'
+} from './lib/supabaseServerEnv.js'
 
 /**
  * Persists scene board JSON to Supabase. Session minting is `scene-board-session.ts`

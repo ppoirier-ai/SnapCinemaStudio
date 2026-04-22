@@ -5,10 +5,10 @@
  */
 import { verifyAsync } from '@noble/ed25519'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { parseVercelJsonBody } from './lib/parseVercelJsonBody'
-import { signBoardJwt } from './lib/sceneBoardHmac'
-import { decodeBase58Ed25519Pubkey } from './lib/solanaPubkeyBytes'
-import { getSceneBoardJwtSecret } from './lib/supabaseServerEnv'
+import { parseVercelJsonBody } from './lib/parseVercelJsonBody.js'
+import { signBoardJwt } from './lib/sceneBoardHmac.js'
+import { decodeBase58Ed25519Pubkey } from './lib/solanaPubkeyBytes.js'
+import { getSceneBoardJwtSecret } from './lib/supabaseServerEnv.js'
 
 const MSG_RE =
   /^SnapCinema:scene-board:v1:([^:]+):(\d+):([0-9a-f-]{36})$/i

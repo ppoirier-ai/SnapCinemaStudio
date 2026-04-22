@@ -1,15 +1,15 @@
 import { verifyAsync } from '@noble/ed25519'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { parseVercelJsonBody } from './lib/parseVercelJsonBody'
+import { parseVercelJsonBody } from './lib/parseVercelJsonBody.js'
 import {
   decodeBase58Ed25519Pubkey,
   ed25519PubkeyBytesEqual,
-} from './lib/solanaPubkeyBytes'
+} from './lib/solanaPubkeyBytes.js'
 import {
   getSupabaseServiceRoleKey,
   getSupabaseUrlForServer,
-} from './lib/supabaseServerEnv'
+} from './lib/supabaseServerEnv.js'
 
 /**
  * Service client without generated `Database` types (mailing_list_signups lives only in SQL).
