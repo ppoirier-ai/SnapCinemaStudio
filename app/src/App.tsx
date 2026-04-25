@@ -6,6 +6,7 @@ import { AccountPage } from './pages/AccountPage'
 import { ContributePage } from './pages/ContributePage'
 import { LandingPage } from './pages/LandingPage'
 import { StudioDemoPage } from './pages/StudioDemoPage'
+import { FrontierPitchPage } from './pages/FrontierPitchPage'
 import './App.css'
 
 /** Code-split Kamino / Orca (heavy); load only on /watch after Buffer polyfill has run. */
@@ -20,6 +21,7 @@ export default function App() {
       <ClarityRouteTracker />
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/frontier-pitch" element={<FrontierPitchPage />} />
         <Route element={<AuthedShell />}>
           <Route
             path="/watch"
