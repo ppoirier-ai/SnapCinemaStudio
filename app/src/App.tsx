@@ -7,6 +7,7 @@ import { ContributePage } from './pages/ContributePage'
 import { LandingPage } from './pages/LandingPage'
 import { StudioDemoPage } from './pages/StudioDemoPage'
 import { FrontierPitchPage } from './pages/FrontierPitchPage'
+import { SecretLoomReelPage } from './pages/SecretLoomReelPage'
 import './App.css'
 
 /** Code-split Kamino / Orca (heavy); load only on /watch after Buffer polyfill has run. */
@@ -22,6 +23,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/frontier-pitch" element={<FrontierPitchPage />} />
+        <Route path="/teaser" element={<SecretLoomReelPage />} />
         <Route element={<AuthedShell />}>
           <Route
             path="/watch"
