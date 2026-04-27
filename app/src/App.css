@@ -2705,7 +2705,8 @@
   min-width: 0;
 }
 
-.landing-section-mailing .landing-mailing-half .mailing-list-signup {
+.landing-section-mailing .landing-mailing-half .mailing-list-signup,
+.watch-footer-mailing .landing-mailing-half .mailing-list-signup {
   max-width: none;
 }
 
@@ -2730,8 +2731,12 @@
   font-weight: 600;
   letter-spacing: -0.02em;
   text-transform: none;
-  color: var(--text-h);
+  color: var(--text-h, var(--st-heading));
   margin: 0;
+}
+
+.watch-footer-mailing .support-studio-donation-title {
+  font-size: clamp(1.2rem, 2.4vw, 1.45rem);
 }
 
 .support-studio-donation-eyebrow {
@@ -2740,59 +2745,68 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--accent) 85%, var(--text-h) 15%);
+  color: color-mix(
+    in srgb,
+    var(--accent, var(--st-accent)) 85%,
+    var(--text-h, var(--st-heading)) 15%
+  );
+}
+
+.watch-footer-mailing .support-studio-donation-eyebrow {
+  color: color-mix(in srgb, var(--st-accent) 80%, var(--st-heading) 20%);
 }
 
 .support-studio-donation-lead {
   margin: 0;
   font-size: 0.9375rem;
   line-height: 1.6;
-  color: var(--text);
+  color: var(--text, var(--st-body));
   opacity: 0.95;
 }
 
+.watch-footer-mailing .support-studio-donation-lead {
+  opacity: 1;
+}
+
 .support-studio-donation-lead strong {
-  color: var(--text-h);
+  color: var(--text-h, var(--st-heading));
   font-weight: 600;
 }
 
-.support-studio-donation-address-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.support-studio-donation-address {
+.support-studio-donation-address-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.55rem 0.65rem;
   font-family: ui-monospace, monospace;
-  font-size: 0.875rem;
-  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  text-align: left;
+  word-break: break-all;
+  cursor: pointer;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg) 75%, var(--accent) 25%);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  color: var(--text-h);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--st-accent)) 35%, var(--border, var(--st-border)));
+  background: color-mix(in srgb, var(--bg, var(--st-surface)) 75%, var(--accent, var(--st-accent)) 25%);
+  color: var(--text-h, var(--st-heading));
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.support-studio-donation-copy {
-  flex-shrink: 0;
+.support-studio-donation-address-btn:hover {
+  border-color: color-mix(in srgb, var(--accent, var(--st-accent)) 55%, var(--border, var(--st-border)));
 }
 
-.support-studio-donation-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-h);
+.support-studio-donation-address-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent, var(--st-accent)) 45%, transparent);
 }
 
-.support-studio-donation-input {
-  max-width: 12rem;
-}
-
-.landing .support-studio-donation .btn-primary {
-  align-self: flex-start;
-  margin-top: 0.15rem;
+.support-studio-donation-copied {
+  margin: 0;
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--accent, var(--st-accent)) 70%, var(--text, var(--st-body)));
 }
 
 .watch-footer-mailing {

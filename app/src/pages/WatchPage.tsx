@@ -16,6 +16,7 @@ import {
 } from '../lib/watchPlaylist'
 import { youtubeThumbnailUrl } from '../lib/youtubeUrl'
 import { MailingListSignup } from '../components/MailingListSignup'
+import { SupportStudioDonation } from '../components/SupportStudioDonation'
 
 function posterForMovie(m: Movie): string | null {
   const id = getFirstYoutubeVideoIdFromMovie(m)
@@ -405,11 +406,21 @@ export function WatchPage() {
         )}
       </section>
 
-      <footer className="watch-footer-mailing" aria-labelledby="watch-mailing-heading">
-        <h2 id="watch-mailing-heading" className="watch-footer-mailing-title">
-          Get Notified Once We Go Live
-        </h2>
-        <MailingListSignup source="watch" />
+      <footer
+        className="watch-footer-mailing"
+        aria-label="Waitlist and studio support"
+      >
+        <div className="landing-mailing-support-grid">
+          <div className="landing-mailing-half">
+            <h2 id="watch-mailing-heading" className="watch-footer-mailing-title">
+              Get Notified Once We Go Live
+            </h2>
+            <MailingListSignup source="watch" />
+          </div>
+          <div className="landing-support-half">
+            <SupportStudioDonation />
+          </div>
+        </div>
       </footer>
     </main>
   )

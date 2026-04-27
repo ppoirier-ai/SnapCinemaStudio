@@ -13,21 +13,10 @@ import { SupportStudioDonation } from '../components/SupportStudioDonation'
 
 const BANNER_VIDEO = '/banner.mp4'
 
-function clearLandingDonationStay() {
-  try {
-    sessionStorage.removeItem('snapcinema_landing_stay')
-  } catch {
-    /* ignore */
-  }
-}
-
 function LandingWalletCta({ id }: { id?: string }) {
   return (
     <div className="landing-cta" id={id}>
-      <WalletModalButton
-        className="btn btn-primary landing-connect"
-        onClick={clearLandingDonationStay}
-      >
+      <WalletModalButton className="btn btn-primary landing-connect">
         Connect wallet to begin
       </WalletModalButton>
       <p className="muted landing-cta-note">
@@ -35,14 +24,6 @@ function LandingWalletCta({ id }: { id?: string }) {
       </p>
     </div>
   )
-}
-
-function landingStayWhileConnected(): boolean {
-  try {
-    return sessionStorage.getItem('snapcinema_landing_stay') === '1'
-  } catch {
-    return false
-  }
 }
 
 export function LandingPage() {
@@ -72,8 +53,7 @@ export function LandingPage() {
     [videoAllowed],
   )
 
-  if (connected && !landingStayWhileConnected())
-    return <Navigate to="/watch" replace />
+  if (connected) return <Navigate to="/watch" replace />
 
   return (
     <div className="landing">
