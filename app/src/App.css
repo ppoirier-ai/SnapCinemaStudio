@@ -2692,6 +2692,109 @@
   margin-bottom: 1rem;
 }
 
+.landing-mailing-support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+  width: 100%;
+}
+
+.landing-mailing-half,
+.landing-support-half {
+  min-width: 0;
+}
+
+.landing-section-mailing .landing-mailing-half .mailing-list-signup {
+  max-width: none;
+}
+
+@media (max-width: 768px) {
+  .landing-mailing-support-grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}
+
+.support-studio-donation {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  height: 100%;
+}
+
+.support-studio-donation-title {
+  font-family: var(--heading, var(--sans));
+  font-size: clamp(1.15rem, 2.2vw, 1.35rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.support-studio-donation-eyebrow {
+  margin: -0.35rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 85%, var(--text-h) 15%);
+}
+
+.support-studio-donation-lead {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text);
+  opacity: 0.95;
+}
+
+.support-studio-donation-lead strong {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.support-studio-donation-address-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.support-studio-donation-address {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg) 75%, var(--accent) 25%);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--text-h);
+}
+
+.support-studio-donation-copy {
+  flex-shrink: 0;
+}
+
+.support-studio-donation-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.support-studio-donation-input {
+  max-width: 12rem;
+}
+
+.landing .support-studio-donation .btn-primary {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+
 .watch-footer-mailing {
   width: 100%;
   max-width: 64rem;

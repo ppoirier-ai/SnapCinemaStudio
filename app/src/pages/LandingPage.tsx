@@ -9,13 +9,25 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletModalButton } from '@solana/wallet-adapter-react-ui'
 import { AppHeader } from '../components/AppHeader'
 import { MailingListSignup } from '../components/MailingListSignup'
+import { SupportStudioDonation } from '../components/SupportStudioDonation'
 
 const BANNER_VIDEO = '/banner.mp4'
+
+function clearLandingDonationStay() {
+  try {
+    sessionStorage.removeItem('snapcinema_landing_stay')
+  } catch {
+    /* ignore */
+  }
+}
 
 function LandingWalletCta({ id }: { id?: string }) {
   return (
     <div className="landing-cta" id={id}>
-      <WalletModalButton className="btn btn-primary landing-connect">
+      <WalletModalButton
+        className="btn btn-primary landing-connect"
+        onClick={clearLandingDonationStay}
+      >
         Connect wallet to begin
       </WalletModalButton>
       <p className="muted landing-cta-note">
@@ -23,6 +35,14 @@ function LandingWalletCta({ id }: { id?: string }) {
       </p>
     </div>
   )
+}
+
+function landingStayWhileConnected(): boolean {
+  try {
+    return sessionStorage.getItem('snapcinema_landing_stay') === '1'
+  } catch {
+    return false
+  }
 }
 
 export function LandingPage() {
@@ -52,7 +72,8 @@ export function LandingPage() {
     [videoAllowed],
   )
 
-  if (connected) return <Navigate to="/watch" replace />
+  if (connected && !landingStayWhileConnected())
+    return <Navigate to="/watch" replace />
 
   return (
     <div className="landing">
@@ -214,10 +235,20 @@ export function LandingPage() {
           className="landing-section landing-section-mailing"
           aria-labelledby="mailing-heading"
         >
-          <h2 id="mailing-heading" className="landing-section-title landing-section-mailing-title">
-            Get Notified Once We Go Live
-          </h2>
-          <MailingListSignup source="landing" />
+          <div className="landing-mailing-support-grid">
+            <div className="landing-mailing-half">
+              <h2
+                id="mailing-heading"
+                className="landing-section-title landing-section-mailing-title"
+              >
+                Get Notified Once We Go Live
+              </h2>
+              <MailingListSignup source="landing" />
+            </div>
+            <div className="landing-support-half">
+              <SupportStudioDonation />
+            </div>
+          </div>
         </section>
 
         <section
