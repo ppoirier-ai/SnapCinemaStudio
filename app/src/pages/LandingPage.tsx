@@ -12,6 +12,8 @@ import { MailingListSignup } from '../components/MailingListSignup'
 import { SupportStudioDonation } from '../components/SupportStudioDonation'
 
 const BANNER_VIDEO = '/banner.mp4'
+const MB_TITLE_IMG = '/MB-title.png'
+const MB_BANNER_IMG = '/MB-banner.png'
 
 function LandingWalletCta({ id }: { id?: string }) {
   return (
@@ -116,6 +118,45 @@ export function LandingPage() {
                 generated from the movie.
               </p>
             </article>
+          </div>
+        </section>
+
+        <section
+          className="landing-section landing-section-mb"
+          aria-labelledby="mortal-blockchains-heading"
+        >
+          <p className="landing-eyebrow landing-mb-eyebrow">Featured film</p>
+          <h2 id="mortal-blockchains-heading" className="landing-mb-title-wrap">
+            <img
+              src={MB_TITLE_IMG}
+              alt="Mortal Blockchains"
+              className="landing-mb-title-img"
+              decoding="async"
+            />
+          </h2>
+          <div className="landing-mb-layout">
+            <div className="landing-mb-banner-wrap">
+              <img
+                src={MB_BANNER_IMG}
+                alt=""
+                className="landing-mb-banner"
+                decoding="async"
+              />
+            </div>
+            <div className="landing-mb-copy">
+              <p className="landing-mb-synopsis">
+                In <strong>Mortal Blockchains</strong>, the first decentralized movie
+                created by fans, Solana&apos;s lightning speed clashes with Bitcoin&apos;s
+                godlike recognition and Ethereum&apos;s long standing market share in
+                visceral battles for digital supremacy. Which blockchain community will
+                roar the loudest? Submit scenes and stake votes to decide the final
+                cut—tribal passion fuels this global spectacle where every chain promotes
+                itself.
+              </p>
+              <WalletModalButton className="btn btn-primary landing-mb-watch-btn">
+                Go to Watch
+              </WalletModalButton>
+            </div>
           </div>
         </section>
 
