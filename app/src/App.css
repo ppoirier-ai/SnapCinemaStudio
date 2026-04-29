@@ -1388,6 +1388,59 @@
   font-weight: 600;
 }
 
+.mortal-pump-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: flex-start;
+  max-width: 52ch;
+}
+
+.mortal-pump-cta--landing {
+  margin-top: 0.15rem;
+}
+
+.mortal-pump-cta--support {
+  margin-top: 1.35rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--st-accent) 35%, var(--st-border, var(--border)));
+  max-width: none;
+}
+
+.landing .mortal-pump-cta--support {
+  border-top-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.mortal-pump-cta-text {
+  margin: 0;
+  font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
+  line-height: 1.65;
+  color: var(--text, var(--st-body));
+  opacity: 0.95;
+}
+
+.mortal-pump-cta-text strong {
+  color: var(--text-h, var(--st-heading));
+  font-weight: 600;
+}
+
+.watch-footer-mailing .mortal-pump-cta-text {
+  opacity: 1;
+}
+
+.mortal-pump-cta-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text, var(--st-body));
+  opacity: 0.82;
+}
+
+.mortal-pump-cta-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 @media (max-width: 900px) {
   .landing-mb-layout {
     grid-template-columns: 1fr;

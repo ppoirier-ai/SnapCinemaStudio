@@ -9,6 +9,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletModalButton } from '@solana/wallet-adapter-react-ui'
 import { AppHeader } from '../components/AppHeader'
 import { MailingListSignup } from '../components/MailingListSignup'
+import { MortalPumpFunCta } from '../components/MortalPumpFunCta'
 import { SupportStudioDonation } from '../components/SupportStudioDonation'
 
 const BANNER_VIDEO = '/banner.mp4'
@@ -156,6 +157,7 @@ export function LandingPage() {
               <WalletModalButton className="btn btn-primary landing-mb-watch-btn">
                 Go to Watch
               </WalletModalButton>
+              <MortalPumpFunCta variant="landing" />
             </div>
           </div>
         </section>

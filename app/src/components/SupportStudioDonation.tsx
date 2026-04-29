@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { MortalPumpFunCta } from './MortalPumpFunCta'
 import { getPlatformOwnerPubkeyString } from '../config/platformOwner'
 
 const COPIED_RESET_MS = 3500
@@ -58,6 +59,7 @@ export function SupportStudioDonation() {
           {copyError}
         </p>
       ) : null}
+      <MortalPumpFunCta variant="support" />
     </div>
   )
 }
