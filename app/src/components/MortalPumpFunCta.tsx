@@ -14,7 +14,10 @@ export function MortalPumpFunCta({ variant }: Props) {
       ? 'mortal-pump-cta mortal-pump-cta--support'
       : 'mortal-pump-cta mortal-pump-cta--landing'
 
-  const btnClass = 'btn btn-primary mortal-pump-cta-btn'
+  const btnClass =
+    variant === 'landing'
+      ? 'mortal-pump-cta-btn mortal-pump-cta-btn--mb-landing'
+      : 'btn btn-primary mortal-pump-cta-btn'
 
   return (
     <div className={rootClass}>

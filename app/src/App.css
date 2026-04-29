@@ -1317,43 +1317,105 @@
 
 /* Mortal Blockchains — featured film */
 .landing-section-mb {
-  padding-top: 2.25rem;
+  padding-top: 2rem;
+  padding-bottom: 2.5rem;
+  border-bottom: none;
+}
+
+.landing-mb-panel {
+  margin: 0;
+  padding: 2rem clamp(1.1rem, 3vw, 2rem) 2.35rem;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--accent-bg) 200%, var(--bg)) 0%,
+    color-mix(in srgb, var(--bg) 90%, var(--accent) 10%) 42%,
+    color-mix(in srgb, var(--bg) 96%, var(--accent) 4%) 100%
+  );
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px color-mix(in srgb, var(--text-h) 4%, transparent),
+    0 24px 64px color-mix(in srgb, #000 35%, transparent);
+}
+
+.landing-mb-header {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem 1.75rem;
+  margin-bottom: 1.85rem;
+  align-items: end;
+}
+
+.landing-mb-header-intro {
+  min-width: 0;
 }
 
 .landing-mb-eyebrow {
-  margin-bottom: 0.75rem;
+  margin: 0 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
 }
 
 .landing-mb-title-wrap {
-  margin: 0 0 1.25rem;
+  margin: 0;
   line-height: 0;
 }
 
 .landing-mb-title-img {
   display: block;
-  width: min(100%, 28rem);
-  max-height: 5.5rem;
+  width: min(100%, 38rem);
+  max-height: clamp(5.25rem, 11vw, 8.5rem);
   height: auto;
   object-fit: contain;
   object-position: left center;
 }
 
+@media (min-width: 720px) {
+  .landing-mb-header {
+    grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+    gap: 1.25rem 2rem;
+  }
+
+  .landing-mb-header-intro {
+    padding-bottom: 0.15rem;
+  }
+
+  .landing-mb-title-wrap {
+    justify-self: end;
+  }
+
+  .landing-mb-title-img {
+    margin-left: auto;
+    object-position: right center;
+  }
+}
+
+@media (max-width: 719px) {
+  .landing-mb-title-img {
+    margin: 0 auto;
+    object-position: center;
+  }
+}
+
 .landing-mb-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-  gap: 1.75rem 2rem;
-  align-items: center;
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+  gap: 2rem 2.25rem;
+  align-items: stretch;
 }
 
 .landing-mb-banner-wrap {
   margin: 0;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
   box-shadow:
-    0 16px 48px color-mix(in srgb, var(--accent) 18%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--text-h) 5%, transparent);
-  background: color-mix(in srgb, var(--bg) 85%, var(--accent-bg) 15%);
+    0 20px 56px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--text-h) 6%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--text-h) 8%, transparent);
+  background: #0a0a10;
 }
 
 .landing-mb-banner {
@@ -1367,25 +1429,57 @@
 .landing-mb-copy {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  align-items: flex-start;
+  gap: 1.5rem;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 0;
 }
 
-.landing-mb-watch-btn {
-  flex-shrink: 0;
+.landing-mb-synopsis-wrap {
+  padding: 1.15rem 1.2rem 1.2rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  background: color-mix(in srgb, var(--bg) 88%, var(--accent) 12%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-h) 6%, transparent);
 }
 
 .landing-mb-synopsis {
   margin: 0;
-  font-size: clamp(0.9375rem, 1.6vw, 1.0625rem);
-  line-height: 1.65;
+  font-size: clamp(0.96875rem, 1.65vw, 1.078125rem);
+  line-height: 1.72;
   color: var(--text);
-  opacity: 0.95;
+  opacity: 0.96;
 }
 
 .landing-mb-synopsis strong {
   color: var(--text-h);
   font-weight: 600;
+}
+
+.landing-mb-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.35rem;
+  padding: 1.2rem 1.15rem 1.25rem;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: color-mix(in srgb, var(--bg) 94%, var(--accent) 6%);
+}
+
+.landing-mb-watch-btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  font-size: 1rem !important;
+  padding: 0.78rem 1.55rem !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+}
+
+.mortal-pump-cta--landing {
+  margin-top: 0;
+  max-width: none;
+  gap: 0.7rem;
 }
 
 .mortal-pump-cta {
@@ -1394,10 +1488,6 @@
   gap: 0.65rem;
   align-items: flex-start;
   max-width: 52ch;
-}
-
-.mortal-pump-cta--landing {
-  margin-top: 0.15rem;
 }
 
 .mortal-pump-cta--support {
@@ -1434,6 +1524,63 @@
   line-height: 1.5;
   color: var(--text, var(--st-body));
   opacity: 0.82;
+}
+
+.landing .mortal-pump-cta-btn--mb-landing {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.72rem 1.25rem;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg));
+  color: var(--text-h);
+  border: 1px solid color-mix(in srgb, var(--accent) 48%, var(--border));
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--text-h) 5%, transparent);
+}
+
+.landing .mortal-pump-cta-btn--mb-landing:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg));
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
+}
+
+.landing .mortal-pump-cta-btn--mb-landing:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, var(--bg));
+}
+
+.landing .mortal-pump-cta-btn--mb-landing:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: color-mix(in srgb, var(--text) 88%, var(--text-h) 12%);
+  background: color-mix(in srgb, var(--bg) 92%, var(--accent) 8%);
+  box-shadow: none;
+}
+
+.landing .landing-mb-actions .mortal-pump-cta-text {
+  font-size: clamp(0.90625rem, 1.55vw, 1rem);
+  line-height: 1.68;
+}
+
+.landing .landing-mb-actions .mortal-pump-cta-hint {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  opacity: 0.88;
 }
 
 .mortal-pump-cta-btn:disabled {

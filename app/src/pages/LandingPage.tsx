@@ -126,38 +126,48 @@ export function LandingPage() {
           className="landing-section landing-section-mb"
           aria-labelledby="mortal-blockchains-heading"
         >
-          <p className="landing-eyebrow landing-mb-eyebrow">Featured film</p>
-          <h2 id="mortal-blockchains-heading" className="landing-mb-title-wrap">
-            <img
-              src={MB_TITLE_IMG}
-              alt="Mortal Blockchains"
-              className="landing-mb-title-img"
-              decoding="async"
-            />
-          </h2>
-          <div className="landing-mb-layout">
-            <div className="landing-mb-banner-wrap">
-              <img
-                src={MB_BANNER_IMG}
-                alt=""
-                className="landing-mb-banner"
-                decoding="async"
-              />
-            </div>
-            <div className="landing-mb-copy">
-              <p className="landing-mb-synopsis">
-                In <strong>Mortal Blockchains</strong>, the first decentralized movie
-                created by fans, Solana&apos;s lightning speed clashes with Bitcoin&apos;s
-                godlike recognition and Ethereum&apos;s long standing market share in
-                visceral battles for digital supremacy. Which blockchain community will
-                roar the loudest? Submit scenes and stake votes to decide the final
-                cut—tribal passion fuels this global spectacle where every chain promotes
-                itself.
-              </p>
-              <WalletModalButton className="btn btn-primary landing-mb-watch-btn">
-                Go to Watch
-              </WalletModalButton>
-              <MortalPumpFunCta variant="landing" />
+          <div className="landing-mb-panel">
+            <header className="landing-mb-header">
+              <div className="landing-mb-header-intro">
+                <p className="landing-eyebrow landing-mb-eyebrow">Featured film</p>
+              </div>
+              <h2 id="mortal-blockchains-heading" className="landing-mb-title-wrap">
+                <img
+                  src={MB_TITLE_IMG}
+                  alt="Mortal Blockchains"
+                  className="landing-mb-title-img"
+                  decoding="async"
+                />
+              </h2>
+            </header>
+            <div className="landing-mb-layout">
+              <div className="landing-mb-banner-wrap">
+                <img
+                  src={MB_BANNER_IMG}
+                  alt=""
+                  className="landing-mb-banner"
+                  decoding="async"
+                />
+              </div>
+              <div className="landing-mb-copy">
+                <div className="landing-mb-synopsis-wrap">
+                  <p className="landing-mb-synopsis">
+                    In <strong>Mortal Blockchains</strong>, the first decentralized movie
+                    created by fans, Solana&apos;s lightning speed clashes with Bitcoin&apos;s
+                    godlike recognition and Ethereum&apos;s long standing market share in
+                    visceral battles for digital supremacy. Which blockchain community will
+                    roar the loudest? Submit scenes and stake votes to decide the final
+                    cut—tribal passion fuels this global spectacle where every chain promotes
+                    itself.
+                  </p>
+                </div>
+                <div className="landing-mb-actions">
+                  <WalletModalButton className="btn btn-primary landing-mb-watch-btn">
+                    Go to Watch
+                  </WalletModalButton>
+                  <MortalPumpFunCta variant="landing" />
+                </div>
+              </div>
             </div>
           </div>
         </section>
