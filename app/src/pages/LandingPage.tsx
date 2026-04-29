@@ -140,8 +140,8 @@ export function LandingPage() {
                 />
               </h2>
             </header>
-            <div className="landing-mb-layout">
-              <div className="landing-mb-banner-wrap">
+            <div className="landing-mb-hero">
+              <div className="landing-mb-banner-wrap landing-mb-banner-wrap--hero">
                 <img
                   src={MB_BANNER_IMG}
                   alt=""
@@ -149,24 +149,24 @@ export function LandingPage() {
                   decoding="async"
                 />
               </div>
-              <div className="landing-mb-copy">
-                <div className="landing-mb-synopsis-wrap">
-                  <p className="landing-mb-synopsis">
-                    In <strong>Mortal Blockchains</strong>, the first decentralized movie
-                    created by fans, Solana&apos;s lightning speed clashes with Bitcoin&apos;s
-                    godlike recognition and Ethereum&apos;s long standing market share in
-                    visceral battles for digital supremacy. Which blockchain community will
-                    roar the loudest? Submit scenes and stake votes to decide the final
-                    cut—tribal passion fuels this global spectacle where every chain promotes
-                    itself.
-                  </p>
-                </div>
-                <div className="landing-mb-actions">
-                  <WalletModalButton className="btn btn-primary landing-mb-watch-btn">
-                    Go to Watch
-                  </WalletModalButton>
-                  <MortalPumpFunCta variant="landing" />
-                </div>
+            </div>
+            <div className="landing-mb-columns">
+              <div className="landing-mb-synopsis-wrap">
+                <p className="landing-mb-synopsis">
+                  In <strong>Mortal Blockchains</strong>, the first decentralized movie
+                  created by fans, Solana&apos;s lightning speed clashes with Bitcoin&apos;s
+                  godlike recognition and Ethereum&apos;s long standing market share in
+                  visceral battles for digital supremacy. Which blockchain community will
+                  roar the loudest? Submit scenes and stake votes to decide the final
+                  cut—tribal passion fuels this global spectacle where every chain promotes
+                  itself.
+                </p>
+                <WalletModalButton className="btn btn-primary landing-mb-watch-btn">
+                  Go to Watch
+                </WalletModalButton>
+              </div>
+              <div className="landing-mb-meme-wrap">
+                <MortalPumpFunCta variant="landing" />
               </div>
             </div>
           </div>
