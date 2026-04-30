@@ -150,6 +150,7 @@ export function LandingPage() {
                     className="landing-mb-banner landing-mb-banner--embed"
                     src={featuredFilmEmbedSrc}
                     title="Mortal Blockchains — featured film"
+                    referrerPolicy="strict-origin-when-cross-origin"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                   />

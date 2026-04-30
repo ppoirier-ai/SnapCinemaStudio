@@ -12,17 +12,21 @@ export function getMortalBlockchainsFilmVideoId(): string | null {
   return MORTAL_BLOCKCHAINS_FILM_VIDEO_ID
 }
 
-/** Featured-film iframe: autoplay, loop, muted (browser autoplay policy). */
+/** Privacy-enhanced embed host (matches tests on snapcinema.site). */
+const MORTAL_BLOCKCHAINS_EMBED_ORIGIN = 'https://www.youtube-nocookie.com'
+
+/**
+ * Featured-film iframe: muted autoplay only.
+ * Do not use loop + playlist with the same video id for this upload — it triggers
+ * “unavailable” / ytp-embed-error in embeds.
+ */
 export function getMortalBlockchainsFeaturedFilmEmbedSrc(): string | null {
   const id = MORTAL_BLOCKCHAINS_FILM_VIDEO_ID
   if (!id) return null
   const q = new URLSearchParams({
     autoplay: '1',
-    loop: '1',
-    playlist: id,
     mute: '1',
     playsinline: '1',
-    rel: '0',
   })
-  return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${q}`
+  return `${MORTAL_BLOCKCHAINS_EMBED_ORIGIN}/embed/${encodeURIComponent(id)}?${q}`
 }
