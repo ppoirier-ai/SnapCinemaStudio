@@ -3152,7 +3152,8 @@
   filter: brightness(1.08);
 }
 
-.support-studio-donation .snap-alpha-buy-btn {
+.support-studio-donation .snap-alpha-buy-btn,
+.support-studio-donation .snap-alpha-priority .mailing-list-signup-form .btn {
   align-self: stretch;
   width: 100%;
   box-sizing: border-box;
@@ -3173,7 +3174,14 @@
   display: inline-flex;
 }
 
-.landing .support-studio-donation .snap-alpha-buy-btn.btn-primary {
+.support-studio-donation .snap-alpha-priority .mailing-list-signup-form .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.landing .support-studio-donation .snap-alpha-buy-btn.btn-primary,
+.landing .support-studio-donation .snap-alpha-priority .mailing-list-signup-form .btn-primary {
   background: linear-gradient(
     165deg,
     color-mix(in srgb, var(--accent) 100%, #9333ea) 0%,
@@ -3183,24 +3191,44 @@
   box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.landing .support-studio-donation .snap-alpha-buy-btn.btn-primary:hover {
+.landing .support-studio-donation .snap-alpha-buy-btn.btn-primary:hover,
+.landing
+  .support-studio-donation
+  .snap-alpha-priority
+  .mailing-list-signup-form
+  .btn-primary:hover:not(:disabled) {
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
 
-.watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary {
+.watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary,
+.watch-footer-mailing
+  .support-studio-donation
+  .snap-alpha-priority
+  .mailing-list-signup-form
+  .btn-primary {
   background: linear-gradient(165deg, var(--st-accent) 0%, #8b5cf6 100%);
   color: #0b0b0f;
   box-shadow: 0 2px 12px color-mix(in srgb, var(--st-accent) 35%, transparent);
 }
 
 @media (prefers-color-scheme: light) {
-  .watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary {
+  .watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary,
+  .watch-footer-mailing
+    .support-studio-donation
+    .snap-alpha-priority
+    .mailing-list-signup-form
+    .btn-primary {
     color: #fff;
   }
 }
 
-.watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary:hover {
+.watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary:hover,
+.watch-footer-mailing
+  .support-studio-donation
+  .snap-alpha-priority
+  .mailing-list-signup-form
+  .btn-primary:hover:not(:disabled) {
   filter: brightness(1.06);
 }
 
