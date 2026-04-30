@@ -15,6 +15,9 @@ import { SupportStudioDonation } from '../components/SupportStudioDonation'
 const BANNER_VIDEO = '/banner.mp4'
 const MB_TITLE_IMG = '/MB-title.png'
 const MB_BANNER_IMG = '/MB-banner.png'
+/** Featured film — YouTube requires playlist=id for loop; mute enables autoplay in browsers. */
+const FEATURED_FILM_EMBED_SRC =
+  'https://www.youtube.com/embed/qHBdKRhJ1Ew?autoplay=1&loop=1&playlist=qHBdKRhJ1Ew&mute=1&playsinline=1&rel=0'
 
 function LandingWalletCta({ id }: { id?: string }) {
   return (
@@ -142,12 +145,22 @@ export function LandingPage() {
             </header>
             <div className="landing-mb-hero">
               <div className="landing-mb-banner-wrap landing-mb-banner-wrap--hero">
-                <img
-                  src={MB_BANNER_IMG}
-                  alt=""
-                  className="landing-mb-banner"
-                  decoding="async"
-                />
+                {videoAllowed ? (
+                  <iframe
+                    className="landing-mb-banner landing-mb-banner--embed"
+                    src={FEATURED_FILM_EMBED_SRC}
+                    title="Mortal Blockchains — featured film"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                ) : (
+                  <img
+                    src={MB_BANNER_IMG}
+                    alt=""
+                    className="landing-mb-banner"
+                    decoding="async"
+                  />
+                )}
               </div>
             </div>
             <div className="landing-mb-columns">

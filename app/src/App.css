@@ -1478,6 +1478,13 @@
   object-fit: cover;
 }
 
+.landing-mb-banner--embed {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  border: 0;
+  object-fit: unset;
+}
+
 .landing-mb-synopsis {
   margin: 0;
   font-size: clamp(0.96875rem, 1.65vw, 1.078125rem);
