@@ -279,7 +279,7 @@ export function LandingPage() {
               <MailingListSignup source="landing" />
             </div>
             <div className="landing-support-half">
-              <SupportStudioDonation />
+              <SupportStudioDonation source="landing" />
             </div>
           </div>
         </section>

@@ -1,13 +1,17 @@
-import { MortalPumpFunCta } from './MortalPumpFunCta'
+import { SnapAlphaPrioritySignup } from './SnapAlphaPrioritySignup'
+import type { SnapAlphaPrioritySource } from './SnapAlphaPrioritySignup'
 
-export function SupportStudioDonation() {
+type Props = {
+  source?: SnapAlphaPrioritySource
+}
+
+export function SupportStudioDonation({ source = 'landing' }: Props) {
   return (
     <div className="support-studio-donation">
       <h2 id="support-heading" className="support-studio-donation-title">
-        Support SnapCinema Studio
+        Alpha priority access ($SNAP)
       </h2>
-      <p className="support-studio-donation-eyebrow">Fund the build</p>
-      <MortalPumpFunCta variant="support" />
+      <SnapAlphaPrioritySignup source={source} />
     </div>
   )
 }

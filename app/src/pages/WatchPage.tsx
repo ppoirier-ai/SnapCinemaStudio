@@ -418,7 +418,7 @@ export function WatchPage() {
             <MailingListSignup source="watch" />
           </div>
           <div className="landing-support-half">
-            <SupportStudioDonation />
+            <SupportStudioDonation source="watch" />
           </div>
         </div>
       </footer>

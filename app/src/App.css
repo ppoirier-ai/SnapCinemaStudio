@@ -3110,6 +3110,100 @@
   display: inline-flex;
 }
 
+.snap-alpha-priority {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: none;
+  margin-top: 0.25rem;
+}
+
+.snap-alpha-priority-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.snap-alpha-priority-body {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-h, var(--st-heading)) 88%, var(--accent, var(--st-accent)) 12%);
+}
+
+.watch-footer-mailing .snap-alpha-priority-body {
+  color: color-mix(in srgb, var(--st-heading) 88%, var(--st-accent) 12%);
+}
+
+.snap-alpha-priority-body strong {
+  font-weight: 600;
+  color: var(--text-h, var(--st-heading));
+}
+
+.snap-alpha-inline-link {
+  color: color-mix(in srgb, var(--accent, var(--st-accent)) 82%, var(--text-h) 18%);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.snap-alpha-inline-link:hover {
+  filter: brightness(1.08);
+}
+
+.support-studio-donation .snap-alpha-buy-btn {
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 0.65rem 1.35rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    filter 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-flex;
+}
+
+.landing .support-studio-donation .snap-alpha-buy-btn.btn-primary {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--accent) 100%, #9333ea) 0%,
+    color-mix(in srgb, var(--accent) 75%, #6366f1) 100%
+  );
+  color: #fff;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.landing .support-studio-donation .snap-alpha-buy-btn.btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary {
+  background: linear-gradient(165deg, var(--st-accent) 0%, #8b5cf6 100%);
+  color: #0b0b0f;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--st-accent) 35%, transparent);
+}
+
+@media (prefers-color-scheme: light) {
+  .watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary {
+    color: #fff;
+  }
+}
+
+.watch-footer-mailing .support-studio-donation .snap-alpha-buy-btn.btn-primary:hover {
+  filter: brightness(1.06);
+}
+
 .watch-footer-mailing {
   width: 100%;
   max-width: 64rem;
