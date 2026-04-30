@@ -119,7 +119,8 @@ function WatchShortPlayback({
           <p>
             Add YouTube scenes via the wallet menu (<strong>Scene</strong>), pick a
             movie below, or set <code>VITE_YOUTUBE_SHORT_ID</code> /{' '}
-            <code>VITE_YOUTUBE_EMBED_URL</code> in <code>.env</code>.
+            <code>VITE_YOUTUBE_EMBED_URL</code> in <code>.env</code> (otherwise the
+            Mortal Blockchains film plays by default).
           </p>
         </div>
       )}

@@ -11,13 +11,11 @@ import { AppHeader } from '../components/AppHeader'
 import { MailingListSignup } from '../components/MailingListSignup'
 import { MortalPumpFunCta } from '../components/MortalPumpFunCta'
 import { SupportStudioDonation } from '../components/SupportStudioDonation'
+import { getMortalBlockchainsFeaturedFilmEmbedSrc } from '../config/mortalBlockchainsFilm'
 
 const BANNER_VIDEO = '/banner.mp4'
 const MB_TITLE_IMG = '/MB-title.png'
 const MB_BANNER_IMG = '/MB-banner.png'
-/** Featured film — YouTube requires playlist=id for loop; mute enables autoplay in browsers. */
-const FEATURED_FILM_EMBED_SRC =
-  'https://www.youtube.com/embed/qHBdKRhJ1Ew?autoplay=1&loop=1&playlist=qHBdKRhJ1Ew&mute=1&playsinline=1&rel=0'
 
 function LandingWalletCta({ id }: { id?: string }) {
   return (
@@ -60,6 +58,8 @@ export function LandingPage() {
   )
 
   if (connected) return <Navigate to="/watch" replace />
+
+  const featuredFilmEmbedSrc = getMortalBlockchainsFeaturedFilmEmbedSrc()
 
   return (
     <div className="landing">
@@ -145,10 +145,10 @@ export function LandingPage() {
             </header>
             <div className="landing-mb-hero">
               <div className="landing-mb-banner-wrap landing-mb-banner-wrap--hero">
-                {videoAllowed ? (
+                {videoAllowed && featuredFilmEmbedSrc ? (
                   <iframe
                     className="landing-mb-banner landing-mb-banner--embed"
-                    src={FEATURED_FILM_EMBED_SRC}
+                    src={featuredFilmEmbedSrc}
                     title="Mortal Blockchains — featured film"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
