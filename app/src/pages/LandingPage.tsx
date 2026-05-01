@@ -10,6 +10,7 @@ import { WalletModalButton } from '@solana/wallet-adapter-react-ui'
 import { AppHeader } from '../components/AppHeader'
 import { MailingListSignup } from '../components/MailingListSignup'
 import { MortalPumpFunCta } from '../components/MortalPumpFunCta'
+import { SiteSocialFooter } from '../components/SiteSocialFooter'
 import { SupportStudioDonation } from '../components/SupportStudioDonation'
 import { getMortalBlockchainsFeaturedFilmEmbedSrc } from '../config/mortalBlockchainsFilm'
 
@@ -312,6 +313,7 @@ export function LandingPage() {
           <LandingWalletCta id="landing-footer-cta" />
         </section>
       </main>
+      <SiteSocialFooter placement="landing" />
     </div>
   )
 }

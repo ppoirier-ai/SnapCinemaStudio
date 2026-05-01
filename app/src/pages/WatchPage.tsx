@@ -16,6 +16,7 @@ import {
 } from '../lib/watchPlaylist'
 import { youtubeThumbnailUrl } from '../lib/youtubeUrl'
 import { MailingListSignup } from '../components/MailingListSignup'
+import { SiteSocialFooter } from '../components/SiteSocialFooter'
 import { SupportStudioDonation } from '../components/SupportStudioDonation'
 
 function posterForMovie(m: Movie): string | null {
@@ -422,6 +423,7 @@ export function WatchPage() {
             <SupportStudioDonation source="watch" />
           </div>
         </div>
+        <SiteSocialFooter placement="watch" />
       </footer>
     </main>
   )
