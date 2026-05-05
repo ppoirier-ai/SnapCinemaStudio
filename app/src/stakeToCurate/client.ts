@@ -10,35 +10,12 @@ import {
   TransactionInstruction,
   clusterApiUrl,
 } from '@solana/web3.js'
-
-/** Vite (`import.meta.env`) or Node (`process.env`) — workers must not assume `import.meta.env` exists. */
-function readViteEnv(name: string): string | undefined {
-  const im =
-    typeof import.meta !== 'undefined'
-      ? (import.meta as ImportMeta & { env?: Record<string, string> }).env
-      : undefined
-  const fromVite = im?.[name]
-  if (fromVite != null && String(fromVite).trim() !== '') return String(fromVite)
-  if (typeof process !== 'undefined') {
-    const p = process.env[name]
-    if (p != null && String(p).trim() !== '') return String(p)
-  }
-  return undefined
-}
+import { readViteOrProcessEnv } from '../lib/viteEnv'
 
 function stakeProgramIdString(): string {
-  const vite =
-    typeof import.meta !== 'undefined' && import.meta.env
-      ? import.meta.env.VITE_STAKE_TO_CURATE_PROGRAM_ID
-      : undefined
-  const proc =
-    typeof process !== 'undefined'
-      ? process.env.VITE_STAKE_TO_CURATE_PROGRAM_ID ??
-        process.env.STAKE_TO_CURATE_PROGRAM_ID
-      : undefined
   return (
-    (vite && String(vite).trim()) ||
-    (proc && String(proc).trim()) ||
+    readViteOrProcessEnv('VITE_STAKE_TO_CURATE_PROGRAM_ID') ??
+    readViteOrProcessEnv('STAKE_TO_CURATE_PROGRAM_ID') ??
     'UfaPFjHzepp91cEzmfoAd2b7bMVWoB37wuPRa8vy9Su'
   )
 }
@@ -104,11 +81,11 @@ export function tryDecodeSlot(data: Buffer | undefined) {
 }
 
 export const DEFAULT_RPC =
-  readViteEnv('VITE_SOLANA_RPC') ?? clusterApiUrl('devnet')
+  readViteOrProcessEnv('VITE_SOLANA_RPC') ?? clusterApiUrl('devnet')
 
 /** On-chain `slot_id` (0–255). Increase `VITE_DEMO_SLOT_ID` in `.env` for a fresh slot (empty stakes) with the same authority wallet. */
 function demoSlotIdFromEnv(): number {
-  const raw = readViteEnv('VITE_DEMO_SLOT_ID')
+  const raw = readViteOrProcessEnv('VITE_DEMO_SLOT_ID')
   if (raw == null || String(raw).trim() === '') return 0
   const n = Number.parseInt(String(raw).trim(), 10)
   if (!Number.isFinite(n) || n < 0 || n > 255) {
@@ -127,7 +104,7 @@ export const DEMO_SLOT_ID = demoSlotIdFromEnv()
  * wallet is both authority and staker (solo dev).
  */
 export function stakeSlotAuthorityFromEnv(): PublicKey | null {
-  const raw = readViteEnv('VITE_STAKE_SLOT_AUTHORITY')
+  const raw = readViteOrProcessEnv('VITE_STAKE_SLOT_AUTHORITY')
   if (raw == null || String(raw).trim() === '') return null
   try {
     return new PublicKey(String(raw).trim())

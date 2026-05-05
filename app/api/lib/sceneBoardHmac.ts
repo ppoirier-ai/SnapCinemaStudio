@@ -1,5 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
+/**
+ * Bearer tokens for scene board: base64url(JSON `{ w, exp }`) plus HMAC-SHA256, verified with
+ * `timingSafeEqual` in `verifyBoardJwt`. Not a standard JWT — keep usage scoped to these APIs.
+ */
+
 function b64url(buf: Buffer): string {
   return buf
     .toString('base64')

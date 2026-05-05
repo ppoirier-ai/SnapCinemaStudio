@@ -1,12 +1,16 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-
 /**
- * Minimal no-Supabase check so you can see whether serverless is healthy.
- * Open GET /api/health in the browser after deploy.
+ * Liveness probe for serverless (`GET /api/health`). Does not touch Supabase; JSON flags only whether env placeholders exist — never returns secret values.
  */
+import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { applyApiCors, isCorsOriginAllowed } from './lib/cors.js'
+
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  applyApiCors(req, res, 'GET, OPTIONS')
   if (req.method === 'OPTIONS') {
+    if (!isCorsOriginAllowed(req)) {
+      res.status(403).end()
+      return
+    }
     res.status(204).end()
     return
   }

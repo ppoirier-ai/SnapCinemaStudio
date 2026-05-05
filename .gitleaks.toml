@@ -1,0 +1,7 @@
+# Intentional devnet scaffold program keypair (see README). Do not reuse for mainnet.
+title = "SnapCinema allowlist"
+
+[allowlist]
+paths = [
+  '''programs/stake_to_curate/keys/stake_to_curate-keypair.json''',
+]

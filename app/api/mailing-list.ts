@@ -1,11 +1,21 @@
-import { verifyAsync } from '@noble/ed25519'
+/**
+ * Waitlist signup (`POST` JSON body) and optional admin CSV-style listing (`op: list` with wallet
+ * `signMessage` proof). Signups use optional Turnstile + Upstash rate limits
+ * (`enforcePublicSignupGuards`). Requires Supabase service role env vars.
+ */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { DEFAULT_PLATFORM_OWNER_PUBKEY } from '../src/config/defaultPlatformOwnerPubkey.js'
+import { GENERIC_INTERNAL_ERROR, logServerError } from './lib/apiErrors.js'
+import { applyApiCors, isCorsOriginAllowed } from './lib/cors.js'
+import { enforcePublicSignupGuards } from './lib/enforcePublicSignupGuards.js'
 import { parseVercelJsonBody } from './lib/parseVercelJsonBody.js'
+import { PayloadTooLargeError } from './lib/requestLimits.js'
 import {
   decodeBase58Ed25519Pubkey,
   ed25519PubkeyBytesEqual,
 } from './lib/solanaPubkeyBytes.js'
+import { verifySolanaWalletSignMessage } from './lib/verifySolanaWalletSignMessage.js'
 import {
   getSupabaseServiceRoleKey,
   getSupabaseUrlForServer,
@@ -17,10 +27,6 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase generic when schema not codegen'd
 type ServiceDb = SupabaseClient<any, 'public', any>
 
-/** Keep in sync with app/src/config/platformOwner.ts */
-const DEFAULT_PLATFORM_OWNER =
-  '5m9EpMNkFn13PSFBAmQB16wjBSWnfRKMFPBkEYod5REW'
-
 const MAIL_LIST_ADMIN_MSG_RE =
   /^SnapCinema:mailing-list-admin:v1:([^:]+):(\d+):([0-9a-f-]{36})$/i
 
@@ -28,20 +34,11 @@ const MAX_EMAIL_LEN = 320
 const MAX_TELEGRAM_LEN = 128
 const LIST_LIMIT = 2000
 
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization',
-  )
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-}
-
 function getPlatformOwnerPubkeyString(): string {
   return (
     process.env.PLATFORM_OWNER_PUBKEY?.trim() ||
     process.env.VITE_PLATFORM_OWNER_PUBKEY?.trim() ||
-    DEFAULT_PLATFORM_OWNER
+    DEFAULT_PLATFORM_OWNER_PUBKEY
   )
 }
 
@@ -50,8 +47,12 @@ export default async function handler(
   res: VercelResponse,
 ) {
   try {
-    cors(res)
+    applyApiCors(req, res, 'POST, OPTIONS')
     if (req.method === 'OPTIONS') {
+      if (!isCorsOriginAllowed(req)) {
+        res.status(403).end()
+        return
+      }
       res.status(204).end()
       return
     }
@@ -74,20 +75,29 @@ export default async function handler(
     }
 
     const supabase: ServiceDb = createClient(supabaseUrl, serviceKey)
-    const body = parseVercelJsonBody(req)
+    let body: Record<string, unknown>
+    try {
+      body = parseVercelJsonBody(req)
+    } catch (e) {
+      if (e instanceof PayloadTooLargeError) {
+        res.status(413).json({ error: 'Request body too large' })
+        return
+      }
+      throw e
+    }
 
     if (body.op === 'list') {
       await handleList(res, supabase, body)
       return
     }
 
+    if (!(await enforcePublicSignupGuards(req, res, body))) return
+
     await handleSignup(res, supabase, body)
   } catch (e) {
-    console.error('[mailing-list] unhandled', e)
+    logServerError('[mailing-list] unhandled', e)
     if (res.headersSent) return
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Internal server error' })
+    res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
   }
 }
 
@@ -134,8 +144,8 @@ async function handleSignup(
   const { error } = await supabase.from('mailing_list_signups').insert(row)
 
   if (error) {
-    console.error('[mailing-list] insert', error)
-    res.status(500).json({ error: error.message })
+    logServerError('[mailing-list] insert', error)
+    res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
     return
   }
 
@@ -155,53 +165,19 @@ async function handleList(
     return
   }
 
-  const m = MAIL_LIST_ADMIN_MSG_RE.exec(message)
-  if (!m) {
-    res.status(400).json({ error: 'Invalid message format' })
+  const verified = await verifySolanaWalletSignMessage({
+    wallet,
+    message,
+    signatureBase64: sigB64,
+    messageRegex: MAIL_LIST_ADMIN_MSG_RE,
+  })
+  if (!verified.ok) {
+    const status =
+      verified.error === 'Signature verification failed' ? 401 : 400
+    res.status(status).json({ error: verified.error })
     return
   }
-  const msgWallet = m[1]
-  const ts = Number(m[2])
-  if (msgWallet !== wallet) {
-    res.status(400).json({ error: 'Wallet mismatch' })
-    return
-  }
-  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > 15 * 60_000) {
-    res.status(400).json({ error: 'Stale or invalid timestamp' })
-    return
-  }
-
-  const walletBytes = decodeBase58Ed25519Pubkey(wallet)
-  if (!walletBytes) {
-    res.status(400).json({ error: 'Invalid wallet' })
-    return
-  }
-
-  let sig: Uint8Array
-  try {
-    sig = new Uint8Array(Buffer.from(sigB64, 'base64'))
-  } catch {
-    res.status(400).json({ error: 'Invalid signature encoding' })
-    return
-  }
-  if (sig.length !== 64) {
-    res.status(400).json({ error: 'Invalid signature length' })
-    return
-  }
-
-  const msgBytes = Buffer.from(message, 'utf8')
-  let sigOk: boolean
-  try {
-    sigOk = await verifyAsync(sig, msgBytes, walletBytes)
-  } catch (e) {
-    console.error('[mailing-list] verifyAsync', e)
-    res.status(400).json({ error: 'Signature verification error' })
-    return
-  }
-  if (!sigOk) {
-    res.status(401).json({ error: 'Signature verification failed' })
-    return
-  }
+  const walletBytes = verified.walletPubkeyBytes
 
   const ownerStr = getPlatformOwnerPubkeyString()
   const ownerBytes = decodeBase58Ed25519Pubkey(ownerStr)
@@ -219,8 +195,8 @@ async function handleList(
     .select('*', { count: 'exact', head: true })
 
   if (countErr) {
-    console.error('[mailing-list] count', countErr)
-    res.status(500).json({ error: countErr.message })
+    logServerError('[mailing-list] count', countErr)
+    res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
     return
   }
 
@@ -231,8 +207,8 @@ async function handleList(
     .limit(LIST_LIMIT)
 
   if (listErr) {
-    console.error('[mailing-list] list', listErr)
-    res.status(500).json({ error: listErr.message })
+    logServerError('[mailing-list] list', listErr)
+    res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
     return
   }
 

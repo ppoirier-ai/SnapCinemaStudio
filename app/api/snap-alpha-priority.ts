@@ -1,7 +1,15 @@
+/**
+ * Alpha priority registration ($SNAP): anonymous `POST` with email + Solana wallet. Uses optional
+ * Turnstile + Upstash rate limits. Requires Supabase service role env vars.
+ */
 import { PublicKey } from '@solana/web3.js'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { GENERIC_INTERNAL_ERROR, logServerError } from './lib/apiErrors.js'
+import { applyApiCors, isCorsOriginAllowed } from './lib/cors.js'
+import { enforcePublicSignupGuards } from './lib/enforcePublicSignupGuards.js'
 import { parseVercelJsonBody } from './lib/parseVercelJsonBody.js'
+import { PayloadTooLargeError } from './lib/requestLimits.js'
 import {
   getSupabaseServiceRoleKey,
   getSupabaseUrlForServer,
@@ -12,12 +20,6 @@ type ServiceDb = SupabaseClient<any, 'public', any>
 
 const MAX_EMAIL_LEN = 320
 const MAX_WALLET_LEN = 64
-
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-}
 
 function parseSolanaPubkey(s: string): string | null {
   const t = s.trim()
@@ -34,8 +36,12 @@ export default async function handler(
   res: VercelResponse,
 ) {
   try {
-    cors(res)
+    applyApiCors(req, res, 'POST, OPTIONS')
     if (req.method === 'OPTIONS') {
+      if (!isCorsOriginAllowed(req)) {
+        res.status(403).end()
+        return
+      }
       res.status(204).end()
       return
     }
@@ -58,10 +64,22 @@ export default async function handler(
     }
 
     const supabase: ServiceDb = createClient(supabaseUrl, serviceKey)
-    const body = parseVercelJsonBody(req)
+    let body: Record<string, unknown>
+    try {
+      body = parseVercelJsonBody(req)
+    } catch (e) {
+      if (e instanceof PayloadTooLargeError) {
+        res.status(413).json({ error: 'Request body too large' })
+        return
+      }
+      throw e
+    }
+
+    if (!(await enforcePublicSignupGuards(req, res, body))) return
 
     const email = typeof body.email === 'string' ? body.email.trim() : ''
-    const walletRaw = typeof body.wallet_address === 'string' ? body.wallet_address.trim() : ''
+    const walletRaw =
+      typeof body.wallet_address === 'string' ? body.wallet_address.trim() : ''
     const source =
       body.source === 'landing' || body.source === 'watch' ? body.source : null
 
@@ -105,17 +123,15 @@ export default async function handler(
         })
         return
       }
-      console.error('[snap-alpha-priority] insert', error)
-      res.status(500).json({ error: error.message })
+      logServerError('[snap-alpha-priority] insert', error)
+      res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
       return
     }
 
     res.status(200).json({ ok: true })
   } catch (e) {
-    console.error('[snap-alpha-priority] unhandled', e)
+    logServerError('[snap-alpha-priority] unhandled', e)
     if (res.headersSent) return
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Internal server error' })
+    res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
   }
 }

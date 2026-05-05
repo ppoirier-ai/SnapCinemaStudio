@@ -1,24 +1,12 @@
+import { readViteOrProcessEnv } from '../lib/viteEnv'
+
 const SESSION_KEY = 'snapcinema-board-api-session'
 
 type BoardApiSession = { token: string; expSec: number; wallet: string }
 
-function readViteEnv(name: string): string | undefined {
-  const im =
-    typeof import.meta !== 'undefined'
-      ? (import.meta as ImportMeta & { env?: Record<string, string> }).env
-      : undefined
-  const fromVite = im?.[name]
-  if (fromVite != null && String(fromVite).trim() !== '') return String(fromVite)
-  if (typeof process !== 'undefined') {
-    const p = process.env[name]
-    if (p != null && String(p).trim() !== '') return String(p)
-  }
-  return undefined
-}
-
 /** Optional: full origin of deployed app for `/api/scene-board*` when running Vite on :5173. */
 export function sceneBoardApiBase(): string {
-  return readViteEnv('VITE_SCENE_BOARD_API_URL')?.replace(/\/$/, '') ?? ''
+  return readViteOrProcessEnv('VITE_SCENE_BOARD_API_URL')?.replace(/\/$/, '') ?? ''
 }
 
 export function sceneBoardApiUrl(path: string): string {

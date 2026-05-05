@@ -1,6 +1,7 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useCallback, useState } from 'react'
 import { getEverriseSnapBuyUrl } from '../config/everriseSnap'
 import { sceneBoardApiUrl } from '../storage/sceneBoardSession'
+import { TurnstileField } from './TurnstileField'
 
 export type SnapAlphaPrioritySource = 'landing' | 'watch'
 
@@ -10,11 +11,20 @@ type Props = {
 
 export function SnapAlphaPrioritySignup({ source }: Props) {
   const buyUrl = getEverriseSnapBuyUrl()
+  const turnstileSiteKey =
+    typeof import.meta.env.VITE_TURNSTILE_SITE_KEY === 'string'
+      ? import.meta.env.VITE_TURNSTILE_SITE_KEY.trim()
+      : ''
+  const captchaRequired = Boolean(turnstileSiteKey)
   const [email, setEmail] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const onCaptcha = useCallback((token: string | null) => {
+    setCaptchaToken(token)
+  }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -23,6 +33,10 @@ export function SnapAlphaPrioritySignup({ source }: Props) {
     const w = walletAddress.trim()
     if (!em || !w) {
       setError('Enter your email and the Solana wallet you plan to use.')
+      return
+    }
+    if (captchaRequired && !captchaToken) {
+      setError('Complete the captcha below.')
       return
     }
     setBusy(true)
@@ -34,6 +48,9 @@ export function SnapAlphaPrioritySignup({ source }: Props) {
           email: em,
           wallet_address: w,
           source,
+          ...(captchaToken
+            ? { cf_turnstile_response: captchaToken }
+            : {}),
         }),
       })
       const text = await res.text()
@@ -51,6 +68,7 @@ export function SnapAlphaPrioritySignup({ source }: Props) {
       setDone(true)
       setEmail('')
       setWalletAddress('')
+      setCaptchaToken(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
     } finally {
@@ -131,6 +149,9 @@ export function SnapAlphaPrioritySignup({ source }: Props) {
             <p className="mailing-list-signup-error" role="alert">
               {error}
             </p>
+          ) : null}
+          {turnstileSiteKey ? (
+            <TurnstileField siteKey={turnstileSiteKey} onToken={onCaptcha} />
           ) : null}
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? 'Submitting…' : 'Register for priority access'}

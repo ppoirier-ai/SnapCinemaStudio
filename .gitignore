@@ -146,3 +146,7 @@ target/
 **/*.rs.bk
 .anchor/
 test-ledger/
+
+# Ad-hoc / mainnet program keys (the bundled devnet scaffold keypair is documented in README only)
+**/*-local-keypair.json
+**/*mainnet*-keypair.json

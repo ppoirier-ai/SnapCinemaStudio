@@ -1,5 +1,6 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useCallback, useState } from 'react'
 import { sceneBoardApiUrl } from '../storage/sceneBoardSession'
+import { TurnstileField } from './TurnstileField'
 
 export type MailingListSource = 'landing' | 'watch'
 
@@ -9,12 +10,21 @@ type Props = {
 }
 
 export function MailingListSignup({ source, className }: Props) {
+  const turnstileSiteKey =
+    typeof import.meta.env.VITE_TURNSTILE_SITE_KEY === 'string'
+      ? import.meta.env.VITE_TURNSTILE_SITE_KEY.trim()
+      : ''
+  const captchaRequired = Boolean(turnstileSiteKey)
   const [email, setEmail] = useState('')
   const [telegram, setTelegram] = useState('')
   const [intent, setIntent] = useState<'watch' | 'contribute'>('watch')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const onCaptcha = useCallback((token: string | null) => {
+    setCaptchaToken(token)
+  }, [])
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -23,6 +33,10 @@ export function MailingListSignup({ source, className }: Props) {
     const tg = telegram.trim().replace(/^@+/, '')
     if (!em && !tg) {
       setError('Enter at least an email address or a Telegram username / ID.')
+      return
+    }
+    if (captchaRequired && !captchaToken) {
+      setError('Complete the captcha below.')
       return
     }
     setBusy(true)
@@ -35,6 +49,9 @@ export function MailingListSignup({ source, className }: Props) {
           telegram: tg || undefined,
           intent,
           source,
+          ...(captchaToken
+            ? { cf_turnstile_response: captchaToken }
+            : {}),
         }),
       })
       const text = await res.text()
@@ -52,6 +69,7 @@ export function MailingListSignup({ source, className }: Props) {
       setDone(true)
       setEmail('')
       setTelegram('')
+      setCaptchaToken(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed')
     } finally {
@@ -121,6 +139,9 @@ export function MailingListSignup({ source, className }: Props) {
             <p className="mailing-list-signup-error" role="alert">
               {error}
             </p>
+          ) : null}
+          {turnstileSiteKey ? (
+            <TurnstileField siteKey={turnstileSiteKey} onToken={onCaptcha} />
           ) : null}
           <button type="submit" className="btn btn-primary" disabled={busy}>
             {busy ? 'Submitting…' : 'Join the mailing list'}

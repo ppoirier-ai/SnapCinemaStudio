@@ -1,7 +1,5 @@
 import { PublicKey } from '@solana/web3.js'
-
-const DEFAULT_PLATFORM_OWNER =
-  '5m9EpMNkFn13PSFBAmQB16wjBSWnfRKMFPBkEYod5REW'
+import { DEFAULT_PLATFORM_OWNER_PUBKEY } from './defaultPlatformOwnerPubkey'
 
 /** Base58 pubkey; override with `VITE_PLATFORM_OWNER_PUBKEY` for forks. */
 export function getPlatformOwnerPubkeyString(): string {
@@ -9,7 +7,7 @@ export function getPlatformOwnerPubkeyString(): string {
     | string
     | undefined
   if (fromEnv?.trim()) return fromEnv.trim()
-  return DEFAULT_PLATFORM_OWNER
+  return DEFAULT_PLATFORM_OWNER_PUBKEY
 }
 
 export function isPlatformOwner(

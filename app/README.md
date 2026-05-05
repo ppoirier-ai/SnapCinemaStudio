@@ -1,73 +1,38 @@
-# React + TypeScript + Vite
+# SnapCinema Studio — web app
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Vite + React front end for **StakeToCurate** on Solana, plus Vercel serverless routes under [`api/`](api/). The Anchor program and workspace docs live at the [repository root](../README.md).
 
-Currently, two official plugins are available:
+## Quick start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cd app
+cp .env.example .env
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open `http://localhost:5173`. Wallet flows default to **devnet** (fund the wallet from a faucet). Point `VITE_SCENE_BOARD_API_URL` at a deployed origin when you need cloud APIs locally (Vite does not run `/api/*`).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+| Command | Purpose |
+|--------|---------|
+| `npm run dev` | Vite dev server |
+| `npm run build` | `tsc -b` + production bundle |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest (crypto / API helpers) |
+| `npm run preview` | Serve `dist/` |
+| `npm run immediate-yield-worker` | Node worker for vault sweep + Kamino (mainnet; see `.env.example`) |
+
+## Deploy (Vercel)
+
+1. Connect the repo; set **Root Directory** to `app` (or run build from monorepo root with the same layout).
+2. Apply Supabase migrations from [`../supabase/migrations/`](../supabase/migrations/).
+3. Configure env vars from [`.env.example`](.env.example). Production should set **`API_CORS_ORIGINS`**, optional **Upstash** + **Turnstile**, **`PLATFORM_OWNER_PUBKEY`**, and a dedicated **`SCENE_BOARD_JWT_SECRET`** where possible (see [`../docs/security.md`](../docs/security.md)).
+
+Security-related response headers are defined in [`vercel.json`](vercel.json).
+
+## Architecture notes
+
+- **Client-only “auth”:** Routes under `AuthedShell` require a connected wallet; there is no classic session cookie.
+- **Scene board cloud sync:** [`api/scene-board-session.ts`](api/scene-board-session.ts) mints an HMAC-bound token after `signMessage`; [`api/scene-board.ts`](api/scene-board.ts) upserts JSON to Supabase using that bearer token.

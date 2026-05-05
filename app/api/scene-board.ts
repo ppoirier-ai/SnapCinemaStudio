@@ -1,6 +1,12 @@
+/**
+ * Persists scene board JSON to Supabase after bearer verification (`scene-board-session.ts` mints tokens).
+ */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { GENERIC_INTERNAL_ERROR, logServerError } from './lib/apiErrors.js'
+import { applyApiCors, isCorsOriginAllowed } from './lib/cors.js'
 import { parseVercelJsonBody } from './lib/parseVercelJsonBody.js'
+import { PayloadTooLargeError } from './lib/requestLimits.js'
 import {
   isCloudPayloadV1,
   verifyBoardJwt,
@@ -11,25 +17,16 @@ import {
   getSupabaseUrlForServer,
 } from './lib/supabaseServerEnv.js'
 
-/**
- * Persists scene board JSON to Supabase. Session minting is `scene-board-session.ts`
- * (separate function bundle, no `createClient` on the hot path for Watch).
- */
-function cors(res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization',
-  )
-  res.setHeader('Access-Control-Allow-Methods', 'PUT, OPTIONS')
-}
-
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
-  cors(res)
+  applyApiCors(req, res, 'PUT, OPTIONS')
   if (req.method === 'OPTIONS') {
+    if (!isCorsOriginAllowed(req)) {
+      res.status(403).end()
+      return
+    }
     res.status(204).end()
     return
   }
@@ -70,7 +67,16 @@ export default async function handler(
       return
     }
 
-    const body = parseVercelJsonBody(req)
+    let body: Record<string, unknown>
+    try {
+      body = parseVercelJsonBody(req)
+    } catch (e) {
+      if (e instanceof PayloadTooLargeError) {
+        res.status(413).json({ error: 'Request body too large' })
+        return
+      }
+      throw e
+    }
     const payload = body.payload
     if (!isCloudPayloadV1(payload)) {
       res.status(400).json({ error: 'Invalid payload' })
@@ -87,17 +93,15 @@ export default async function handler(
     )
 
     if (error) {
-      console.error('[scene-board] upsert', error)
-      res.status(500).json({ error: error.message })
+      logServerError('[scene-board] upsert', error)
+      res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
       return
     }
 
     res.status(200).json({ ok: true })
   } catch (e) {
-    console.error('[scene-board] unhandled', e)
+    logServerError('[scene-board] unhandled', e)
     if (res.headersSent) return
-    res
-      .status(500)
-      .json({ error: e instanceof Error ? e.message : 'Internal server error' })
+    res.status(500).json({ error: GENERIC_INTERNAL_ERROR })
   }
 }

@@ -28,4 +28,11 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/context/SceneBoardContext.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
+  },
 ])

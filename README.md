@@ -36,3 +36,9 @@ After `anchor build`, you can refresh instruction discriminators for the hand-wr
 ## Status
 
 **Phase 1** program logic and a **wallet-connected demo app** are implemented; run the steps above on **devnet** to validate end-to-end. Spec: [`docs/project-description.md`](docs/project-description.md).
+
+## Production checklist
+
+- **[`docs/security.md`](docs/security.md)** — CORS allowlist, optional Upstash rate limits, Turnstile, JWT and platform-owner secrets, Solana key hygiene.
+- **CI:** [`/.github/workflows/app-ci.yml`](.github/workflows/app-ci.yml) (lint, tests, build); [`/.github/workflows/gitleaks.yml`](.github/workflows/gitleaks.yml) with [`/.gitleaks.toml`](.gitleaks.toml) excluding only the documented devnet scaffold keypair.
+- **Mainnet:** use a fresh deploy authority keypair, deliberate treasury configuration, and third-party program audit before material TVL.

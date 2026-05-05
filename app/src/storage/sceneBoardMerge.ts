@@ -1,6 +1,11 @@
 import type { Movie, MoviesUIState } from './sceneBoardModel'
 import type { SceneBoardCloudPayloadV1 } from './sceneBoardTypes'
 
+/**
+ * Merges local scene-board UI state with Supabase rows: last-write-wins per movie id using
+ * `updatedAtMs`, while preserving selection pointers when still valid after the merge.
+ */
+
 export type SceneBoardRemoteRow = {
   creator_wallet: string
   payload: SceneBoardCloudPayloadV1
