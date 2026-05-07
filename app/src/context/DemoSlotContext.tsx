@@ -222,7 +222,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   const slotPk = useMemo(
     () =>
       slotAuthorityPk ? slotPda(slotAuthorityPk, DEMO_SLOT_ID) : null,
-    [slotAuthorityPk, DEMO_SLOT_ID],
+    [slotAuthorityPk],
   )
 
   useEffect(() => {
@@ -359,7 +359,7 @@ export function DemoSlotProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!connected || !publicKey || !instantSessionMeta) return
     void refreshOnChain(null)
-  }, [connected, publicKey, instantSessionMeta?.ephemeralPk, refreshOnChain])
+  }, [connected, publicKey, instantSessionMeta, refreshOnChain])
 
   const instantStakingSessionActive = Boolean(
     instantSessionMeta &&

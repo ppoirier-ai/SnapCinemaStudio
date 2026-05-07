@@ -130,7 +130,7 @@ export function AccountPanelContent({
       })
     const n = Math.min(Math.max(1, batchCount), withPct.length)
     return withPct.slice(0, n).map((x) => x.hex)
-  }, [rows, batchCount, positions.length])
+  }, [rows, batchCount])
 
   if (!connected || !publicKey) {
     return <p className="muted">Connect a wallet to see positions.</p>
